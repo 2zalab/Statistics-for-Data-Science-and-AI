@@ -1,0 +1,17 @@
+\section{Simulation study II: learners on spatio-temporal data}\label{sec:sim2}
+
+The second study reproduces the full pipeline of an applied comparison: data generation, model fitting by cross-validation and testing. The difficulty in such a study is to know the truth. We obtain an exact null by exchangeability.
+
+\subsection{Design}
+
+\paragraph{Data.} On a $10\times10$ grid observed at $20$ time points ($n=2000$), three covariates $x_1,x_2,x_3$ and a latent residual $w$ are independent spatio-temporal fields with the dependence levels of Section~\ref{sec:sim1}. The response is
+\[
+y=g(x_1)+(1-\gamma)\,g(x_2)+x_3+w+\epsilon,\qquad g(v)=\sin(2v)+v,\qquad \epsilon\sim N(0,0.5^2)\ \text{i.i.d.}
+\]
+\paragraph{Models.} Model $A$ is XGBoost~\cite{chen2016} ($100$ trees of depth $4$, learning rate $0.1$, row subsampling $0.8$) fitted on $(x_1,x_3,s,t)$; model $B$ is the same learner fitted on $(x_2,x_3,s,t)$. Including the coordinates lets both models exploit the spatial and temporal structure of $w$, as is common in practice.
+
+\paragraph{Exact null by exchangeability.} When $\gamma=0$, the joint distribution of the data is invariant under the exchange of $x_1$ and $x_2$, which exchanges the roles of $A$ and $B$. Hence $\E[d_i]=0$ for every observation and every validation design: the two models have exactly the same expected performance, although in any given sample one of them will appear better. When $\gamma>0$, $x_1$ carries more signal than $x_2$ and $A$ is truly better; we use $\gamma\in\{0.1,0.2,0.3\}$.
+
+\paragraph{Validation and procedures.} Two pipelines are applied to each data set. The \emph{conventional} pipeline uses random $5$-fold cross-validation with the paired $t$-test on fold means and the i.i.d. bootstrap, and $5\times5$ repeated random cross-validation with the corrected resampled $t$-test~\cite{nadeau2003}. The \emph{dependence-aware} pipeline uses blocked $5$-fold cross-validation ($5\times5$-site tiles crossed with $4$-step windows, $G=20$ blocks, and a buffer that removes from the training set observations within one site and one time step of the test fold) with the procedures of Section~\ref{sec:sim1}. There are $300$ replicates per dependence level under the null and $150$ under each alternative.
+
+%%SIM2RESULTS%%

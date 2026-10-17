@@ -1,0 +1,19 @@
+\section{Simulation study I: controlled loss-differential fields}\label{sec:sim1}
+
+The first study isolates the inferential problem from the learning problem. Prediction errors are simulated directly, so that the true expected loss differential is known exactly and the dependence of the $d_i$ is controlled.
+
+\subsection{Design}
+
+\paragraph{Fields.} Observations lie on a $12\times12$ grid of sites observed at $24$ time points ($n=3456$). All fields are separable Gaussian fields with unit variance, exponential spatial correlation $\exp(-h/a)$ and AR(1) temporal dependence with coefficient $\phi$. Four dependence levels are considered: \emph{none} ($a=0$, $\phi=0$), \emph{weak} ($a=1$, $\phi=0.3$), \emph{moderate} ($a=2$, $\phi=0.6$) and \emph{strong} ($a=4$, $\phi=0.8$). The corresponding practical ranges are $3a=0,3,6,12$ grid units in space and $-3/\log\phi=0,2.5,5.9,13.4$ time steps; at the strong level the range is as large as the domain.
+
+\paragraph{Losses.} With $\varepsilon$, $e_A$ and $e_B$ three independent fields, the response noise is $\varepsilon$, model $A$ has errors $e_A$ and model $B$ has errors $\sqrt{1+\delta}\,e_B$. Under squared loss,
+\[
+d_i=(\varepsilon_i-e_{A,i})^2-(\varepsilon_i-\sqrt{1+\delta}\,e_{B,i})^2+\eta_{k(i)},\qquad \E[d_i]=-\delta ,
+\]
+so that $\Delta_n=-\delta$ exactly. The fold effects $\eta_k=\sigma_\eta(\sqrt{\rho}\,g+\sqrt{1-\rho}\,h_k)$, with $g,h_1,\dots,h_K$ i.i.d. standard normal, $\sigma_\eta=0.05$ and $\rho=0.25$, mimic the training-induced variability of~\eqref{eq:model}, including its correlation across folds. We use $\delta=0$ (null) and $\delta\in\{0.1,0.2,0.4\}$ (alternatives).
+
+\paragraph{Validation and procedures.} The domain is cut into $4\times4$-site tiles crossed with $6$-step time windows ($G=36$ blocks), which are allocated to $K=5$ folds with balanced sizes. We compare the paired $t$-test on fold means, the i.i.d. bootstrap, the block bootstrap and a random-intercept LMM (both with the $36$ blocks as clusters), the Diebold--Mariano test with a site-wise Newey--West variance (DM--HAC), and DA-HAC. Three ablations of DA-HAC are included: without the training term ($\hat\tau^2=0$), with a normal reference distribution, and with a fixed bandwidth equal to the block size instead of the variogram-calibrated one. Bootstraps use $999$ resamples. There are $1000$ replicates per dependence level under the null and $300$ under each alternative, so that the Monte Carlo standard error of a rejection rate of $5\%$ is $0.7$ percentage points.
+
+\paragraph{Pilot.} The bandwidth multiplier $\kappa$ and the reference distribution were chosen in a pilot study with $300$ null replicates per level, run on random seeds disjoint from those of the main study. Rejection rates of DA-HAC varied by at most $2.7$ percentage points across $\kappa\in\{0.5,1,1.5,2\}$ at any level, with no systematic trend, and we retained $\kappa=1$. Capping the degrees of freedom by the kernel term of~\eqref{eq:df} reduced the rejection rate at the strong level from $17.7\%$ to $15.3\%$ without affecting the other levels by more than $1.4$ points, and was retained. The pilot results are included in the code repository.
+
+%%SIM1RESULTS%%
