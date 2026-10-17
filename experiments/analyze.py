@@ -260,15 +260,16 @@ def exp3_tables_figures():
         return
     df = add_flags(pd.concat(frames))
     order = [("random", "paired_t"), ("random", "iid_bootstrap"), ("random", "nadeau_bengio"),
-             ("blocked", "paired_t"), ("blocked", "block_bootstrap"), ("blocked", "mixed_model"),
-             ("blocked", "dm_hac"), ("blocked", "da_hac")]
+             ("blocked", "paired_t"), ("blocked", "iid_bootstrap"), ("blocked", "block_bootstrap"),
+             ("blocked", "mixed_model"), ("blocked", "dm_hac"), ("blocked", "da_hac")]
     lines = []
     for ds in DATASETS:
         sub_ds = df[df.dataset == ds]
         if sub_ds.empty:
             continue
-        lines.append(f"\\multicolumn{{5}}{{l}}{{\\emph{{{DATASETS[ds]}}}}} \\\\")
+        lines.append(f"\\multicolumn{{4}}{{@{{}}l}}{{\\textbf{{{DATASETS[ds]}}}}} \\\\")
         for comp in COMPARISONS:
+            lines.append(f"\\multicolumn{{4}}{{@{{}}l}}{{\\emph{{{COMPARISONS[comp]}}}}} \\\\")
             for sch, m in order:
                 r = sub_ds[(sub_ds.comparison == comp) & (sub_ds.scheme == sch) & (sub_ds.method == m)]
                 if r.empty:
@@ -276,8 +277,9 @@ def exp3_tables_figures():
                 r = r.iloc[0]
                 p = r.pvalue
                 ps = "$<$0.001" if p < 0.001 else f"{p:.3f}"
-                lines.append(f"\\quad {COMPARISONS[comp] if (sch, m) == order[0] else ''} & {sch} & {LABEL[m]} & "
-                             f"{r.estimate:.4f} [{r.ci_low:.4f}, {r.ci_high:.4f}] & {ps} \\\\")
+                digits = 4 if abs(r.estimate) < 0.1 else (2 if abs(r.estimate) < 10 else 1)
+                lines.append(f"\\quad {'R' if sch == 'random' else 'B'} & {LABEL[m]} & "
+                             f"{r.estimate:.{digits}f} [{r.ci_low:.{digits}f}, {r.ci_high:.{digits}f}] & {ps} \\\\")
             lines.append(r"\addlinespace")
     (TAB / "exp3_main.tex").write_text("\n".join(lines) + "\n")
 
@@ -337,7 +339,9 @@ def exp3_tables_figures():
         s = pd.read_csv(f)
         s["reject"] = s.pvalue < ALPHA
         cells = []
-        for sch, m in order:
+        for sch, m in [("random", "paired_t"), ("random", "iid_bootstrap"), ("blocked", "paired_t"),
+                       ("blocked", "iid_bootstrap"), ("blocked", "block_bootstrap"), ("blocked", "mixed_model"),
+                       ("blocked", "dm_hac"), ("blocked", "da_hac")]:
             sub = s[(s.scheme == sch) & (s.method == m)]
             cells.append("--" if sub.empty else f"{100 * sub.reject.mean():.0f}")
         lines.append(f"{DATASETS[ds].split(' (')[0]} & " + " & ".join(cells) + r" \\")

@@ -53,10 +53,9 @@ Fold-centring removes from $\tilde u$ the fold-level average of $u$ itself, so $
 HAC tests are known to over-reject when the effective sample size is small~\cite{kiefer2005}, and $\hat\tau^2$ rests on only $K-1$ degrees of freedom. We approximate the distribution of $\hat V$ by a scaled $\chi^2$ with Welch--Satterthwaite~\cite{satterthwaite1946} degrees of freedom
 \begin{equation}\label{eq:df}
 \hat\nu=\frac{\hat V^2}{\hat V_u^2/\nu_u+(\zeta_K\hat\tau^2)^2/(K-1)},\qquad
-\nu_u=\min\Bigl\{\hat n_{\mathrm{eff}}-1,\ \prod_{q}\frac{3L_q}{2b_q}\Bigr\},\qquad
-\hat n_{\mathrm{eff}}=\frac{n^{-1}\sum_i\tilde u_i^2}{\hat V_u},
+\nu_u=\min\Bigl\{\hat n_{\mathrm{eff}}-1,\ \prod_{q}\frac{3L_q}{2b_q}\Bigr\},
 \end{equation}
-where $\hat n_{\mathrm{eff}}$ is truncated to $[2,n]$, the product runs over the spatial and temporal axes with a positive bandwidth, and $L_q$ is the extent of the domain along axis $q$. The second term of $\nu_u$ is the classical approximation to the degrees of freedom of a kernel spectral estimate~\cite{andrews1991}: for a lag window $k$ of bandwidth $b$ on a record of length $L$, $\Var(\hat V)/V^2\approx2(b/L)\int k^2$, with $\int k^2=2/3$ for the Bartlett window, and the factors multiply for a product kernel. It caps the degrees of freedom when the bandwidth is not small compared with the domain, the regime in which HAC tests are most anti-conservative. The test statistic $T=\hat\Delta/\sqrt{\hat V}$ is referred to a Student $t_{\hat\nu}$ distribution, and the $(1-\alpha)$ confidence interval is $\hat\Delta\pm t_{\hat\nu,1-\alpha/2}\sqrt{\hat V}$.
+with $\hat n_{\mathrm{eff}}=n^{-1}\sum_i\tilde u_i^2/\hat V_u$ truncated to $[2,n]$, where the product runs over the spatial and temporal axes with a positive bandwidth, and $L_q$ is the extent of the domain along axis $q$. The second term of $\nu_u$ is the classical approximation to the degrees of freedom of a kernel spectral estimate~\cite{andrews1991}: for a lag window $k$ of bandwidth $b$ on a record of length $L$, $\Var(\hat V)/V^2\approx2(b/L)\int k^2$, with $\int k^2=2/3$ for the Bartlett window, and the factors multiply for a product kernel. It caps the degrees of freedom when the bandwidth is not small compared with the domain, the regime in which HAC tests are most anti-conservative. The test statistic $T=\hat\Delta/\sqrt{\hat V}$ is referred to a Student $t_{\hat\nu}$ distribution, and the $(1-\alpha)$ confidence interval is $\hat\Delta\pm t_{\hat\nu,1-\alpha/2}\sqrt{\hat V}$.
 
 \begin{algorithm}[t]
 \caption{DA-HAC test for $H_0:\Delta_n=0$}\label{alg:dahac}

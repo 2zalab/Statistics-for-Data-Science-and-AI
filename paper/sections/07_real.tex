@@ -14,4 +14,65 @@ For the two hourly data sets, blocks are two-week windows ($26$ and $53$ blocks)
 
 \paragraph{Seed-null diagnostic.} For each data set we also compare XGBoost with itself, the two runs differing only in their random seed ($30$ pairs). By symmetry, the expected loss differential of such a comparison is zero, while in each run the stochastic subsampling produces a non-zero observed difference. A procedure that frequently declares one seed ``significantly better'' than the other confuses training noise with a real improvement. Because the data are held fixed, this diagnostic measures the sensitivity of each procedure to training randomness only; it is not a full assessment of size, which Sections~\ref{sec:sim1} and~\ref{sec:sim2} provide.
 
-%%REALRESULTS%%
+\subsection{Results}
+
+Table~\ref{tab:real} and Fig.~\ref{fig:forest} report the estimated loss differentials (XGBoost minus competitor; negative values favour XGBoost), their $95\%$ intervals and the $p$-values; Table~\ref{tab:realdiag} gives the DA-HAC diagnostics and Fig.~\ref{fig:vario} the variograms of the fold-centred loss differentials.
+
+\paragraph{NYC weather: an improvement that vanishes.} Under random cross-validation, XGBoost appears clearly better than the random forest (log-loss gain $0.011$, $p\le0.001$ with every procedure) and than logistic regression (gain $0.041$, $p\le0.001$). Under two-week blocked cross-validation both gains disappear: the point estimates become slightly \emph{positive} ($+0.0036$ and $+0.0028$), and DA-HAC, the paired $t$-test and the cluster procedures find no significant difference ($p\ge0.28$). Random folds let the models recognise weather episodes from neighbouring hours of the same day; the apparent superiority of XGBoost reflects its better use of this leakage, not better prediction of new periods. The i.i.d. bootstrap applied to the blocked differentials even declares the random forest significantly \emph{better} than XGBoost ($p=0.023$), a reversal produced by ignoring the $20$-hour dependence range of the loss differential (Table~\ref{tab:realdiag}).
+
+\paragraph{Melbourne pedestrians: a small gain of uncertain reality.} XGBoost and the random forest are indistinguishable under random cross-validation, but under blocked cross-validation XGBoost has a small advantage ($0.0025$ in squared error of the log count). The paired $t$-test ($p=0.033$) and the i.i.d. bootstrap ($p=0.011$) call it significant; DA-HAC ($p=0.17$), DM--HAC ($p=0.16$) and the cluster procedures ($p\ge0.40$) do not. The variogram of the loss differential has a short estimated range ($5$ hours) but pedestrian traffic also has daily and weekly cycles and holiday effects, which an exponential variogram does not represent; the wider block-bootstrap interval suggests that some of this longer-range dependence is missed by the kernel estimator. We would conclude that the gain is not established. By contrast, the advantage of XGBoost over the linear baseline ($1.85$) is overwhelming under every procedure.
+
+\paragraph{Las Rosas maize: when the diagnostics warn.} The gain of XGBoost over the random forest is $2.8$\,(q/ha)$^2$ under random cross-validation, significant with all procedures ($p\le0.013$), and much larger but much more uncertain under spatial blocking ($21$). The i.i.d. bootstrap ($p=0.001$) and the block bootstrap ($p=0.043$) declare it significant, the LMM is borderline ($p=0.069$), and the paired $t$-test ($p=0.31$) and DA-HAC ($p=0.45$) do not. The DA-HAC diagnostics explain why: the loss differential has a spatial range of about $150$\,m in a field of $660\times380$\,m (range ratio $0.40$), so the effective sample size is about $150$ for $3443$ yield-monitor points, and the training term dominates the variance ($\hat\nu=4.7$). Following our recommendations, this comparison is unresolved: the data contain too few independent regions to tell whether gradient boosting is genuinely better than the random forest on this field. The gain over the linear model ($160$, interval $[110,210]$) is, again, unambiguous.
+
+\paragraph{Seed-null diagnostic.} Table~\ref{tab:seednull} reports how often each procedure declares one of two XGBoost runs, differing only by their seed, significantly better than the other. Procedures that resample observations independently do so in $33$--$87\%$ of the pairs under blocked cross-validation, and in $43\%$ of the pairs for the pedestrian data under random cross-validation, where the subsampling noise of the learner is spatially and temporally coherent. DM--HAC does so in $23$--$33\%$. DA-HAC ($0$--$10\%$) and the cluster procedures ($0$--$10\%$) are the least sensitive to training noise, followed by the blocked paired $t$-test ($0$--$13\%$). With $30$ pairs per data set, these rates have a Monte Carlo standard error of up to $9$ percentage points and should be read qualitatively.
+
+\begin{table}[t]
+\caption{Case studies: estimated loss differential $\hat\Delta$ (XGBoost minus competitor; negative favours XGBoost) with $95\%$ confidence interval and $p$-value. R: random $5$-fold CV; B: blocked $5$-fold CV. Losses: log loss (NYC weather), squared error of $\log(1+\text{count})$ (pedestrians), squared error of yield in (q/ha)$^2$ (maize).}\label{tab:real}
+\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}llrr@{}}
+\toprule
+CV & Procedure & $\hat\Delta$ [95\% CI] & $p$\\
+\midrule
+\tabinput{tables/exp3_main.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Case studies: DA-HAC diagnostics on the blocked loss differentials: estimated practical ranges in space and time, effective sample size $\hat n_{\mathrm{eff}}$, degrees of freedom $\hat\nu$ and training variance $\hat\tau^2$.}\label{tab:realdiag}
+\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+Data set & Comparison & $\hat r_S$ & $\hat r_T$ & $\hat n_{\mathrm{eff}}$ & $\hat\nu$ & $\hat\tau^2$\\
+\midrule
+\tabinput{tables/exp3_diag.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Seed-null diagnostic: percentage of $30$ pairs of XGBoost runs differing only in their random seed for which the procedure rejects equality at $\alpha=0.05$. R: random CV; B: blocked CV; --: not available (no time axis).}\label{tab:seednull}
+\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}lrrrrrrrr@{}}
+\toprule
+& \multicolumn{2}{c}{Random CV} & \multicolumn{6}{c}{Blocked CV}\\
+\cmidrule(lr){2-3}\cmidrule(l){4-9}
+Data set & Paired $t$ & i.i.d. bs & Paired $t$ & i.i.d. bs & Block bs & LMM & DM--HAC & DA-HAC\\
+\midrule
+\tabinput{tables/exp3_seednull.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/exp3_forest.pdf}
+\caption{Case studies: $95\%$ confidence intervals for the loss differential (XGBoost minus competitor) under random (R) and blocked (B) cross-validation. The dashed line marks equal performance.}\label{fig:forest}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/exp3_variograms.pdf}
+\caption{Case studies: empirical semivariograms of the fold-centred loss differentials $\tilde u$ (XGBoost vs random forest, blocked CV; points), fitted exponential models (lines) and practical ranges (dotted).}\label{fig:vario}
+\end{figure}
+
