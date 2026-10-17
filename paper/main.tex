@@ -18,6 +18,7 @@
 \usepackage{algorithmicx}
 \usepackage{algpseudocode}
 \usepackage{xurl}
+\providecommand{\burl}[1]{\url{#1}}% clickable, breakable URLs in the bibliography
 \usepackage{tikz}
 \usetikzlibrary{positioning,fit,backgrounds,arrows.meta,calc}
 
@@ -79,6 +80,6 @@
 \input{sections/09_conclusion}
 \input{sections/10_declarations}
 
-\bibliography{references}
+{\sloppy\bibliography{references}}
 
 \end{document}
