@@ -161,7 +161,7 @@ def exp1_figures(df, n_rep):
     ax.set_ylabel("Median 95% CI width")
     ax.set_title("(b) Interval width", loc="left", color=INK)
     h, l = axes[0].get_legend_handles_labels()
-    fig.legend(h, l, loc="upper center", ncol=6, bbox_to_anchor=(0.5, 0.0), fontsize=7.5,
+    fig.legend(h, l, loc="upper center", ncol=6, bbox_to_anchor=(0.5, -0.05), fontsize=7.5,
                handlelength=1.8, columnspacing=1.2)
     fig.savefig(FIG / "exp1_size.pdf")
     plt.close(fig)
@@ -179,7 +179,7 @@ def exp1_figures(df, n_rep):
         ax.set_xlabel("True loss gap $\\delta$")
     axes[0].set_ylabel("Rejection rate")
     h, l = axes[0].get_legend_handles_labels()
-    fig.legend(h, l, loc="upper center", ncol=6, bbox_to_anchor=(0.5, 0.0), fontsize=7.5)
+    fig.legend(h, l, loc="upper center", ncol=6, bbox_to_anchor=(0.5, -0.05), fontsize=7.5)
     fig.savefig(FIG / "exp1_power.pdf")
     plt.close(fig)
 
@@ -238,7 +238,7 @@ def exp2_tables_figures(df):
             if l not in labels:
                 handles.append(h)
                 labels.append(l)
-    fig.legend(handles, labels, loc="upper center", ncol=5, bbox_to_anchor=(0.5, 0.0), fontsize=7.2,
+    fig.legend(handles, labels, loc="upper center", ncol=5, bbox_to_anchor=(0.5, -0.05), fontsize=7.2,
                columnspacing=1.0, handlelength=1.6)
     fig.savefig(FIG / "exp2_size.pdf")
     plt.close(fig)

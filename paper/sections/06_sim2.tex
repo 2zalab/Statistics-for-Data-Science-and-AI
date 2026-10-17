@@ -14,4 +14,47 @@ y=g(x_1)+(1-\gamma)\,g(x_2)+x_3+w+\epsilon,\qquad g(v)=\sin(2v)+v,\qquad \epsilo
 
 \paragraph{Validation and procedures.} Two pipelines are applied to each data set. The \emph{conventional} pipeline uses random $5$-fold cross-validation with the paired $t$-test on fold means and the i.i.d. bootstrap, and $5\times5$ repeated random cross-validation with the corrected resampled $t$-test~\cite{nadeau2003}. The \emph{dependence-aware} pipeline uses blocked $5$-fold cross-validation ($5\times5$-site tiles crossed with $4$-step windows, $G=20$ blocks, and a buffer that removes from the training set observations within one site and one time step of the test fold) with the procedures of Section~\ref{sec:sim1}. There are $300$ replicates per dependence level under the null and $150$ under each alternative.
 
-%%SIM2RESULTS%%
+\subsection{Results}
+
+\paragraph{Random cross-validation.} The left panel of Fig.~\ref{fig:exp2size} and the upper part of Table~\ref{tab:exp2} show that the conventional pipeline fails as soon as the data are dependent. With random $5$-fold cross-validation, the paired $t$-test rejects a true null in $15\%$ of replicates under moderate and $29\%$ under strong dependence, and the i.i.d. bootstrap in $24\%$ and $40\%$. The corrected resampled $t$-test of Nadeau and Bengio is well calibrated without dependence ($3.7\%$) and under weak dependence ($5.7\%$), as designed, but not beyond ($16\%$ and $33\%$): its correction accounts for overlapping training sets, not for dependent test observations. Note also that even without spatio-temporal dependence the paired $t$-test rejects $9\%$ of true nulls, the problem identified by Dietterich~\cite{dietterich1998}.
+
+\paragraph{The estimand changes with the validation design.} Random cross-validation does not only produce invalid tests; it also estimates a different quantity. Table~\ref{tab:exp2est} reports the average estimated gain of model $A$ under both designs. Because both models can exploit the coordinates to interpolate between nearby training observations, random cross-validation attenuates the advantage conferred by the more informative covariate, by about $30\%$ under moderate and $50\%$ under strong dependence ($-0.53$ instead of $-0.80$, and $-0.30$ instead of $-0.60$, for $\gamma=0.2$). A gain measured by random cross-validation is thus not a conservative estimate of the gain at new locations and times: it is an estimate of a different, interpolation-based, quantity.
+
+\paragraph{Blocked cross-validation.} Blocking is necessary but not sufficient. With blocked folds, procedures that assume independent observations (i.i.d. bootstrap, $55\%$ at the moderate level) or ignore cross-sectional correlation (DM--HAC, $50\%$) are even worse than under random cross-validation, because the dependent test errors are no longer diluted across folds. The cluster procedures over-reject at every level, including without dependence ($11\%$ and $8\%$), since the fold effects induced by refitting XGBoost are correlated across blocks of the same fold. DA-HAC and the paired $t$-test on blocked folds are the two best procedures: they are calibrated without dependence ($3.3\%$ and $5.3\%$) and nearly so under weak dependence ($7.0\%$ and $7.7\%$), but both reject about $15\%$ of true nulls under moderate and strong dependence. In this design the dependence of the loss differential has an additional, domain-wide component: whichever of the two covariate fields happens to be more variable over the whole domain in a given sample favours the corresponding model in every fold. With a practical range of a quarter to a half of the domain, this component is shared by all blocks and is only weakly identifiable from a single sample. We return to this limitation in Section~\ref{sec:discussion}.
+
+\paragraph{Power.} Under the alternatives (right part of Table~\ref{tab:exp2}), the blocked paired $t$-test and DA-HAC have similar power ($67\%$ and $62\%$ for $\gamma=0.2$ at the moderate level), lower than that of the invalid procedures. Without dependence, DA-HAC is less powerful than the paired $t$-test for large effects ($91\%$ against $100\%$ for $\gamma=0.3$), because a large fold-level variance $\hat\tau^2$, estimated with $K-1$ degrees of freedom, then dominates its variance and reduces its degrees of freedom.
+
+\begin{table}[t]
+\caption{Experiment 2: rejection rate (\%) of a true null ($\gamma=0$, $300$ replicates per level) and raw power (\%) at the moderate dependence level ($150$ replicates per value of $\gamma$). Bold: rejection rate outside the $95\%$ Monte Carlo band $[2.5,7.5]$.}\label{tab:exp2}
+\centering\small
+\begin{tabular}{@{}llrrrrrrr@{}}
+\toprule
+& & \multicolumn{4}{c}{Type I error (\%)} & \multicolumn{3}{c}{Power, moderate (\%)}\\
+\cmidrule(lr){3-6}\cmidrule(l){7-9}
+CV & Procedure & None & Weak & Mod. & Strong & $\gamma=0.1$ & $0.2$ & $0.3$\\
+\midrule
+\tabinput{tables/exp2_size_power.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Experiment 2: Monte Carlo mean of the estimated loss differential $\hat\Delta$ (model $A$ minus model $B$, squared loss) under random (R) and blocked (B) cross-validation. Under the null ($\gamma=0$) both are zero by exchangeability.}\label{tab:exp2est}
+\centering\small
+\begin{tabular}{@{}lrrrrrrrr@{}}
+\toprule
+& \multicolumn{2}{c}{$\gamma=0$} & \multicolumn{2}{c}{$\gamma=0.1$} & \multicolumn{2}{c}{$\gamma=0.2$} & \multicolumn{2}{c}{$\gamma=0.3$}\\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(l){8-9}
+Dependence & R & B & R & B & R & B & R & B\\
+\midrule
+\tabinput{tables/exp2_estimand.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/exp2_size.pdf}
+\caption{Experiment 2. Rejection rate of a true null hypothesis (two XGBoost models with exchangeable feature sets) under random and blocked cross-validation (log scale). Dashed line: nominal level; grey band: $95\%$ Monte Carlo band.}\label{fig:exp2size}
+\end{figure}
+
