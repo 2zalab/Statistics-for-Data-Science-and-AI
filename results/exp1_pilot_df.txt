@@ -1,0 +1,8 @@
+Pilot on separate seeds (300 replicates per level, null, alpha = 0.05). Rejection rates (%).
+neff: Satterthwaite with nu_hac = n_eff - 1; kdf: nu_hac = min(n_eff - 1, prod 3L/(2b)).
+half: variogram max lag = half spatial extent / half temporal extent; full: whole extent.
+level      none  weak  moderate  strong
+kdf_full    4.3   6.0       7.7    15.0
+kdf_half    5.3   6.3       8.3    15.3
+neff_full   7.3   6.0       7.7    16.0
+neff_half   6.7   6.3       8.3    17.7

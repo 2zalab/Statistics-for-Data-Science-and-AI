@@ -1,0 +1,66 @@
+%% Manuscript for the Special Issue "Statistics for Data Science and AI",
+%% International Journal of Data Science and Analytics (Springer Nature).
+%% Compile with: latexmk -pdf main.tex   (see Makefile)
+
+\documentclass[pdflatex,sn-mathphys-num]{sn-jnl}
+
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsthm}
+\usepackage{mathrsfs}
+\usepackage[title]{appendix}
+\usepackage{xcolor}
+\usepackage{textcomp}
+\usepackage{manyfoot}
+\usepackage{booktabs}
+\usepackage{algorithm}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+
+\theoremstyle{thmstyleone}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{thmstylethree}
+\newtheorem{remark}{Remark}
+\newtheorem{definition}{Definition}
+
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\Cov}{\operatorname{Cov}}
+\newcommand{\dbar}{\bar d}
+
+\raggedbottom
+
+\begin{document}
+
+\title[Are Machine Learning Improvements Statistically Real?]{Are Machine Learning Improvements Statistically Real? Dependence-Aware Inference for Reliable Model Comparison on Spatiotemporal Data}
+
+% --------------------------------------------------------------------------
+% Authors
+% --------------------------------------------------------------------------
+
+\author*[1,2]{\fnm{Isaac} \sur{Touza}\,\orcid{https://orcid.org/0009-0003-6288-9458}}
+
+\email{isaac\_touza@outlook.fr}
+
+% --------------------------------------------------------------------------
+% Affiliations
+% --------------------------------------------------------------------------
+
+\affil*[1]{\orgdiv{Department of Mathematics--Computer Science, Faculty of Sciences},
+	\orgname{University of Maroua},
+	\orgaddress{\city{Maroua}, \postcode{814}, \country{Cameroon}}}
+
+\affil[2]{\orgdiv{Laboratoire de Recherche en Informatique (LaRI)},
+	\orgname{University of Maroua},
+	\orgaddress{\street{P.O. Box 46}, \city{Maroua}, \country{Cameroon}}}
+
+%%ABSTRACT%%
+
+\maketitle
+
+%%BODY%%
+
+\bibliography{references}
+
+\end{document}

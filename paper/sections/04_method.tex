@@ -1,0 +1,87 @@
+\section{Dependence-aware HAC inference}\label{sec:method}
+
+DA-HAC estimates the two components of~\eqref{eq:var} from the loss differentials of a single blocked cross-validation run. Its steps are summarised in Algorithm~\ref{alg:dahac} and detailed below.
+
+\subsection{Fold-centred differentials}
+
+Let $m_k$ be the mean of the $d_i$ in fold $k$ and $\tilde u_i=d_i-m_{k(i)}$. Under~\eqref{eq:model}, $\tilde u_i=u_i-\bar u_{k(i)}$ is free of the fold effects, so that the dependence structure of $u$ can be studied without confusion with the training-induced component.
+
+\subsection{Variogram-calibrated bandwidths}
+
+The key tuning parameter of any HAC estimator is the bandwidth, i.e.\ the distance beyond which covariances are neglected. Rules of thumb developed for time series~\cite{newey1987,andrews1991} do not transfer to space, and the dependence range of the loss differential is in general different from that of the response: it is the range of the \emph{residual} structure that both models fail to capture. We therefore estimate it from $\tilde u$ directly. The directional empirical semivariograms
+\begin{align*}
+\hat\gamma_S(h)&=\frac{1}{2|N_S(h)|}\sum_{(i,j)\in N_S(h)}(\tilde u_i-\tilde u_j)^2,& N_S(h)&=\{(i,j):t_i=t_j,\ \|s_i-s_j\|\in I_h\},\\
+\hat\gamma_T(\ell)&=\frac{1}{2|N_T(\ell)|}\sum_{(i,j)\in N_T(\ell)}(\tilde u_i-\tilde u_j)^2,& N_T(\ell)&=\{(i,j):s_i=s_j,\ |t_i-t_j|\in I_\ell\},
+\end{align*}
+are computed over distance and lag bins $I_h$, $I_\ell$ up to a maximum lag (by default half the spatial extent and a quarter of the temporal extent). For purely spatial data, $N_S(h)$ uses all pairs. To each we fit the exponential model $\gamma(h)=c_0+c_1\{1-\exp(-h/a)\}$ by the weighted least squares of Cressie~\cite{cressie1985}, with weights $|N(h)|/\gamma(h)^2$. The \emph{practical range} $r=3a$ is the distance at which the correlation of the structured component falls to $5\%$; it is set to zero when the structured part explains less than $5\%$ of the sill ($c_1<0.05(c_0+c_1)$). The spatial and temporal bandwidths are
+\[
+b_S=\kappa\,\hat r_S,\qquad b_T=\kappa\,\hat r_T ,
+\]
+with $\kappa=1$ chosen in a pilot study on separate random seeds (Section~\ref{sec:sim1}). We also report the \emph{range ratio} $\max_q b_q/L_q$, the largest bandwidth relative to the extent of the domain along the same axis, as a diagnostic: when it approaches one, the sample contains only a handful of effectively independent regions, and no procedure can estimate the variance of $\hat\Delta$ reliably from it.
+
+\subsection{Kernel estimate of the test-sampling variance}
+
+We use the product-Bartlett kernel
+\begin{equation}\label{eq:kernel}
+w_{ij}=\prod_{q=1}^{p}\Bigl(1-\frac{|s_{iq}-s_{jq}|}{b_S}\Bigr)_+\Bigl(1-\frac{|t_i-t_j|}{b_T}\Bigr)_+ ,
+\end{equation}
+where a zero bandwidth keeps only pairs with identical coordinates on that axis. Each factor is a one-dimensional Bartlett (triangular) kernel, whose Fourier transform is non-negative; the product is therefore a positive semi-definite kernel on $\mathbb{R}^{p+1}$, which guarantees non-negative variance estimates. (A Bartlett kernel applied to the Euclidean distance in two or more dimensions does not have this property.) The test-sampling variance and its within-fold analogues are
+\begin{equation}\label{eq:vu}
+\hat V_u=\frac{1}{n^2}\sum_{i,j}w_{ij}\tilde u_i\tilde u_j,\qquad
+\hat V_k=\frac{1}{n_k^2}\sum_{i,j\in F_k}w_{ij}\tilde u_i\tilde u_j .
+\end{equation}
+Only pairs with $w_{ij}>0$ contribute; they are enumerated with a $k$-d tree in the Chebyshev metric after scaling each coordinate by its bandwidth, at a cost proportional to the number of such pairs.
+
+\subsection{Training-induced variance}
+
+Under~\eqref{eq:model}, the between-fold variance of fold means exceeds their within-fold test-sampling variance by the variance of the fold effects. We estimate it by the method of moments,
+\begin{equation}\label{eq:tau}
+\hat\tau^2=\max\Bigl\{0,\ s_m^2-\frac1K\sum_{k=1}^K\hat V_k\Bigr\}.
+\end{equation}
+Since $\E[s_m^2]$ subtracts the covariance between fold effects (Proposition~\ref{prop:pairedt}), $\hat\tau^2$ targets $\tau^2(1-\rho)$ rather than $\tau^2$. The correlation $\rho$ is not identifiable from one cross-validation run~\cite{bengio2004}; following Nadeau and Bengio~\cite{nadeau2003} we set it to the test fraction $\rho=n_{\text{test}}/n=1/K$. Then $V_\eta=\tau^2[1/K+\rho(1-1/K)]=\zeta_K\,\tau^2(1-\rho)$ with
+\[
+\zeta_K=\frac1K+\frac1{K-1},
+\]
+which is exactly the Nadeau--Bengio inflation $1/J+n_{\text{test}}/n_{\text{train}}$ with $J=K$ splits. The final variance estimate is
+\begin{equation}\label{eq:vtotal}
+\hat V=\hat V_u+\zeta_K\hat\tau^2 .
+\end{equation}
+Fold-centring removes from $\tilde u$ the fold-level average of $u$ itself, so $\hat V_u$ is slightly biased downward when the dependence range is comparable to the fold size; because $s_m^2$ contains that same component while the $\hat V_k$ do not, the deficit is transferred to $\hat\tau^2$, which partially compensates for it.
+
+\subsection{Reference distribution}
+
+HAC tests are known to over-reject when the effective sample size is small~\cite{kiefer2005}, and $\hat\tau^2$ rests on only $K-1$ degrees of freedom. We approximate the distribution of $\hat V$ by a scaled $\chi^2$ with Welch--Satterthwaite~\cite{satterthwaite1946} degrees of freedom
+\begin{equation}\label{eq:df}
+\hat\nu=\frac{\hat V^2}{\hat V_u^2/\nu_u+(\zeta_K\hat\tau^2)^2/(K-1)},\qquad
+\nu_u=\min\Bigl\{\hat n_{\mathrm{eff}}-1,\ \prod_{q}\frac{3L_q}{2b_q}\Bigr\},\qquad
+\hat n_{\mathrm{eff}}=\frac{n^{-1}\sum_i\tilde u_i^2}{\hat V_u},
+\end{equation}
+where $\hat n_{\mathrm{eff}}$ is truncated to $[2,n]$, the product runs over the spatial and temporal axes with a positive bandwidth, and $L_q$ is the extent of the domain along axis $q$. The second term of $\nu_u$ is the classical approximation to the degrees of freedom of a kernel spectral estimate~\cite{andrews1991}: for a lag window $k$ of bandwidth $b$ on a record of length $L$, $\Var(\hat V)/V^2\approx2(b/L)\int k^2$, with $\int k^2=2/3$ for the Bartlett window, and the factors multiply for a product kernel. It caps the degrees of freedom when the bandwidth is not small compared with the domain, the regime in which HAC tests are most anti-conservative. The test statistic $T=\hat\Delta/\sqrt{\hat V}$ is referred to a Student $t_{\hat\nu}$ distribution, and the $(1-\alpha)$ confidence interval is $\hat\Delta\pm t_{\hat\nu,1-\alpha/2}\sqrt{\hat V}$.
+
+\begin{algorithm}[t]
+\caption{DA-HAC test for $H_0:\Delta_n=0$}\label{alg:dahac}
+\begin{algorithmic}[1]
+\Require loss differentials $d_i$, folds $k(i)$, coordinates $(s_i,t_i)$, level $\alpha$, multiplier $\kappa$ (default 1)
+\State $m_k\gets$ mean of $d_i$ over $F_k$; \ $\tilde u_i\gets d_i-m_{k(i)}$; \ $\hat\Delta\gets n^{-1}\sum_i d_i$
+\State Fit exponential models to the spatial and temporal empirical variograms of $\tilde u$; \ $b_S\gets\kappa\hat r_S$, $b_T\gets\kappa\hat r_T$
+\State Enumerate pairs with $w_{ij}>0$ under the product-Bartlett kernel~\eqref{eq:kernel}
+\State Compute $\hat V_u$ and $\hat V_1,\dots,\hat V_K$ by~\eqref{eq:vu}
+\State $\hat\tau^2\gets\max\{0,s_m^2-K^{-1}\sum_k\hat V_k\}$; \ $\hat V\gets\hat V_u+(1/K+1/(K-1))\hat\tau^2$
+\State Compute $\hat n_{\mathrm{eff}}$, $\nu_u$ and $\hat\nu$ by~\eqref{eq:df}, and the range ratio $\max_q b_q/L_q$
+\State \Return $p=2\,\Pr(t_{\hat\nu}>|\hat\Delta|/\sqrt{\hat V})$ and the interval $\hat\Delta\pm t_{\hat\nu,1-\alpha/2}\sqrt{\hat V}$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Properties}
+
+\begin{remark}[Special cases]
+If $b_S=b_T=0$ and $\hat\tau^2=0$, then $\hat V=n^{-2}\sum_i\tilde u_i^2$ and DA-HAC reduces to the one-sample $t$-test on the $d_i$. If the data have no spatial (or no temporal) coordinate, the corresponding factor of~\eqref{eq:kernel} is omitted. Because the kernel is positive semi-definite, $\hat V\ge0$ always.
+\end{remark}
+
+\begin{remark}[Consistency]
+For fixed bandwidths, $\hat V_u$ is a Conley-type spatial HAC estimator~\cite{conley1999}. Under increasing-domain asymptotics with mixing conditions and bandwidths that grow with, but more slowly than, the size of the domain, such estimators are consistent~\cite{conley1999,andrews1991}. Our bandwidths are data-dependent and our variance includes a component, $\hat\tau^2$, estimated from only $K$ folds; we therefore do not claim exact asymptotic validity, and instead evaluate the finite-sample behaviour of the whole procedure by simulation with known truth.
+\end{remark}
+
+\begin{remark}[Scope]
+DA-HAC requires only the per-observation losses of the two models and their coordinates; it is agnostic to the learners, to the loss and to the blocking scheme. The same construction applies to any additive performance measure (squared error, absolute error, log loss, Brier score, 0--1 loss). Non-additive measures such as the AUC or the F1-score would require a linearisation (influence function) first.
+\end{remark}
