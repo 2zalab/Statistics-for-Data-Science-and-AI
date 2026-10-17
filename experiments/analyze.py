@@ -30,8 +30,12 @@ LABEL = {
     "da_hac_no_tau": "DA-HAC without $\\hat\\tau^2$ term",
     "da_hac_normal": "DA-HAC, normal reference",
     "hac_block_bw": "HAC, block-size bandwidth",
+    "hering_genton": "Hering--Genton (space--time)",
+    "da_hac_rho0": "DA-HAC, $\\rho_0=0$",
+    "da_hac_rho0.5": "DA-HAC, $\\rho_0=0.5$",
 }
-PLAIN = {k: v.replace("$t$", "t").replace("$\\hat\\tau^2$", "τ²") for k, v in LABEL.items()}
+PLAIN = {k: v.replace("$t$", "t").replace("$\\hat\\tau^2$", "τ²").replace("--", "–")
+         .replace("$\\rho_0=", "ρ₀=").replace("$", "") for k, v in LABEL.items()}
 
 # Reference categorical palette (dataviz skill, light mode), fixed slot order.
 SLOT = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
@@ -43,7 +47,10 @@ STYLE = {  # colour follows the method everywhere; markers give a second encodin
     "mixed_model": (SLOT[4], "v"),
     "dm_hac": (SLOT[5], "P"),
     "nadeau_bengio": (SLOT[6], "X"),
+    "hering_genton": (SLOT[7], "*"),
 }
+RSTAR = [0.25]  # updated by exp1b_tables once the pilot has been analysed
+MAIN = ["paired_t", "iid_bootstrap", "block_bootstrap", "mixed_model", "dm_hac", "hering_genton", "da_hac"]
 INK, MUTED, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 
 plt.rcParams.update({
@@ -83,8 +90,7 @@ def add_flags(df):
 
 def exp1_tables(df):
     null = df[df.delta == 0]
-    methods = ["paired_t", "iid_bootstrap", "block_bootstrap", "mixed_model", "dm_hac", "da_hac",
-               "da_hac_no_tau", "da_hac_normal", "hac_block_bw"]
+    methods = MAIN + ["da_hac_no_tau", "da_hac_normal", "hac_block_bw"]
     n_rep = null.groupby(["level", "method"]).size().min()
     band = 1.96 * np.sqrt(ALPHA * (1 - ALPHA) / n_rep)
     lo, hi = ALPHA - band, ALPHA + band
@@ -105,7 +111,7 @@ def exp1_tables(df):
 
     alt = df[df.delta > 0]
     lines = []
-    for m in methods[:6]:
+    for m in MAIN:
         cells = []
         for lvl in ["none", "moderate", "strong"]:
             # size-adjusted: critical p-value = 5% quantile of the null p-values
@@ -139,7 +145,7 @@ def size_panel(ax, null, methods, title, n_rep):
 
 def exp1_figures(df, n_rep):
     null = df[df.delta == 0]
-    methods = ["paired_t", "iid_bootstrap", "block_bootstrap", "mixed_model", "dm_hac", "da_hac"]
+    methods = MAIN
     fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.7))
     size_panel(axes[0], null, methods, "(a) Type I error rate", n_rep)
     axes[0].set_ylabel("Rejection rate at $\\alpha=0.05$")
@@ -161,7 +167,7 @@ def exp1_figures(df, n_rep):
     ax.set_ylabel("Median 95% CI width")
     ax.set_title("(b) Interval width", loc="left", color=INK)
     h, l = axes[0].get_legend_handles_labels()
-    fig.legend(h, l, loc="upper center", ncol=6, bbox_to_anchor=(0.5, -0.05), fontsize=7.5,
+    fig.legend(h, l, loc="upper center", ncol=4, bbox_to_anchor=(0.5, -0.05), fontsize=7.5,
                handlelength=1.8, columnspacing=1.2)
     fig.savefig(FIG / "exp1_size.pdf")
     plt.close(fig)
@@ -179,9 +185,40 @@ def exp1_figures(df, n_rep):
         ax.set_xlabel("True loss gap $\\delta$")
     axes[0].set_ylabel("Rejection rate")
     h, l = axes[0].get_legend_handles_labels()
-    fig.legend(h, l, loc="upper center", ncol=6, bbox_to_anchor=(0.5, -0.05), fontsize=7.5)
+    fig.legend(h, l, loc="upper center", ncol=4, bbox_to_anchor=(0.5, -0.05), fontsize=7.5)
     fig.savefig(FIG / "exp1_power.pdf")
     plt.close(fig)
+
+    # Coverage for each true gap and dependence level
+    fig, axes = plt.subplots(1, 4, figsize=(7.0, 2.3), sharey=True)
+    for ax, lvl in zip(axes, LEVELS):
+        for m in methods:
+            cv = [df[(df.level == lvl) & (df.method == m) & (df.delta == dl)].covered.mean() for dl in deltas]
+            c, mk = STYLE[m]
+            ax.plot(deltas, cv, color=c, marker=mk, lw=2.2 if m == "da_hac" else 1.4, label=PLAIN[m])
+        ax.axhline(1 - ALPHA, color=MUTED, lw=0.8, ls="--")
+        ax.set_title("No dependence" if lvl == "none" else lvl.capitalize(), loc="left", color=INK)
+        ax.set_xlabel("True loss gap $\\delta$")
+        ax.set_ylim(0.15, 1.0)
+    axes[0].set_ylabel("Coverage of 95% CI")
+    h, l = axes[0].get_legend_handles_labels()
+    fig.legend(h, l, loc="upper center", ncol=4, bbox_to_anchor=(0.5, -0.05), fontsize=7.5)
+    fig.savefig(FIG / "exp1_coverage.pdf")
+    plt.close(fig)
+
+    # Boundary case: truncation of the training variance at zero
+    lines = []
+    for lvl in LEVELS:
+        sub = null[null.method == "da_hac"]
+        sub = sub[sub.level == lvl]
+        if "info_tau2_raw" not in sub:
+            break
+        trunc = sub.info_tau2_raw <= 0
+        r1 = sub[trunc].reject.mean() if trunc.any() else np.nan
+        r0 = sub[~trunc].reject.mean() if (~trunc).any() else np.nan
+        lines.append(f"{lvl.capitalize()} & {100 * trunc.mean():.1f} & {100 * r1:.1f} & {100 * r0:.1f} & "
+                     f"{sub[trunc].df.median():.0f} & {sub[~trunc].df.median():.0f} \\\\")
+    (TAB / "exp1_boundary.tex").write_text("\n".join(lines) + "\n")
 
 
 # ---------------------------------------------------------------------------
@@ -194,8 +231,7 @@ def exp2_tables_figures(df):
     band = 1.96 * np.sqrt(ALPHA * (1 - ALPHA) / n_rep)
     lo, hi = ALPHA - band, ALPHA + band
     rows = [("random", m) for m in ["paired_t", "iid_bootstrap", "nadeau_bengio"]]
-    rows += [("blocked", m) for m in ["paired_t", "iid_bootstrap", "block_bootstrap", "mixed_model",
-                                      "dm_hac", "da_hac"]]
+    rows += [("blocked", m) for m in MAIN]
     gammas = sorted(df[df.gamma > 0].gamma.unique())
     lines = []
     for i, (sch, m) in enumerate(rows):
@@ -224,8 +260,7 @@ def exp2_tables_figures(df):
     fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.7), sharey=True)
     for ax, sch, methods, title in [
             (axes[0], "random", ["paired_t", "iid_bootstrap", "nadeau_bengio"], "(a) Random 5-fold CV"),
-            (axes[1], "blocked", ["paired_t", "iid_bootstrap", "block_bootstrap", "mixed_model", "dm_hac", "da_hac"],
-             "(b) Blocked 5-fold CV")]:
+            (axes[1], "blocked", MAIN, "(b) Blocked 5-fold CV")]:
         size_panel(ax, null[null.scheme == sch], methods, title, n_rep)
     axes[0].set_ylabel("Rejection rate at $\\alpha=0.05$")
     for ax in axes:
@@ -251,7 +286,21 @@ def exp2_tables_figures(df):
 
 DATASETS = {"nyc_weather": "NYC weather (rain, log loss)", "pedestrian": "Melbourne pedestrians (log count, MSE)",
             "lasrosas": "Las Rosas maize (yield, MSE)"}
-COMPARISONS = {"xgb_vs_rf": "XGBoost vs random forest", "xgb_vs_linear": "XGBoost vs linear"}
+COMPARISONS = {"xgb_vs_rf": "XGBoost vs random forest", "xgb_vs_linear": "XGBoost vs linear",
+               "rf_vs_linear": "Random forest vs linear"}
+SCHEME = {"random": "R", "blocked": "B", "forward": "F"}
+
+
+def holm(pvals):
+    """Holm step-down adjusted p-values."""
+    p = np.asarray(pvals, float)
+    order = np.argsort(p)
+    adj = np.empty_like(p)
+    running = 0.0
+    for rank, i in enumerate(order):
+        running = max(running, (len(p) - rank) * p[i])
+        adj[i] = min(1.0, running)
+    return adj
 
 
 def exp3_tables_figures():
@@ -259,17 +308,24 @@ def exp3_tables_figures():
     if not frames:
         return
     df = add_flags(pd.concat(frames))
+    df["p_holm"] = np.nan
+    for _, g in df.groupby(["dataset", "scheme", "method"]):
+        if len(g) > 1:
+            df.loc[g.index, "p_holm"] = holm(g.pvalue.values)
     order = [("random", "paired_t"), ("random", "iid_bootstrap"), ("random", "nadeau_bengio"),
              ("blocked", "paired_t"), ("blocked", "iid_bootstrap"), ("blocked", "block_bootstrap"),
-             ("blocked", "mixed_model"), ("blocked", "dm_hac"), ("blocked", "da_hac")]
+             ("blocked", "mixed_model"), ("blocked", "dm_hac"), ("blocked", "hering_genton"),
+             ("blocked", "da_hac"), ("forward", "paired_t"), ("forward", "block_bootstrap"),
+             ("forward", "hering_genton"), ("forward", "da_hac")]
+    df = df.reset_index(drop=True)
     lines = []
     for ds in DATASETS:
         sub_ds = df[df.dataset == ds]
         if sub_ds.empty:
             continue
-        lines.append(f"\\multicolumn{{4}}{{@{{}}l}}{{\\textbf{{{DATASETS[ds]}}}}} \\\\")
+        lines.append(f"\\multicolumn{{5}}{{@{{}}l}}{{\\textbf{{{DATASETS[ds]}}}}} \\\\")
         for comp in COMPARISONS:
-            lines.append(f"\\multicolumn{{4}}{{@{{}}l}}{{\\emph{{{COMPARISONS[comp]}}}}} \\\\")
+            lines.append(f"\\multicolumn{{5}}{{@{{}}l}}{{\\emph{{{COMPARISONS[comp]}}}}} \\\\")
             for sch, m in order:
                 r = sub_ds[(sub_ds.comparison == comp) & (sub_ds.scheme == sch) & (sub_ds.method == m)]
                 if r.empty:
@@ -278,8 +334,10 @@ def exp3_tables_figures():
                 p = r.pvalue
                 ps = "$<$0.001" if p < 0.001 else f"{p:.3f}"
                 digits = 4 if abs(r.estimate) < 0.1 else (2 if abs(r.estimate) < 10 else 1)
-                lines.append(f"\\quad {'R' if sch == 'random' else 'B'} & {LABEL[m]} & "
-                             f"{r.estimate:.{digits}f} [{r.ci_low:.{digits}f}, {r.ci_high:.{digits}f}] & {ps} \\\\")
+                ph = r.p_holm
+                phs = "--" if np.isnan(ph) else ("$<$0.001" if ph < 0.001 else f"{ph:.3f}")
+                lines.append(f"\\quad {SCHEME[sch]} & {LABEL[m]} & "
+                             f"{r.estimate:.{digits}f} [{r.ci_low:.{digits}f}, {r.ci_high:.{digits}f}] & {ps} & {phs} \\\\")
             lines.append(r"\addlinespace")
     (TAB / "exp3_main.tex").write_text("\n".join(lines) + "\n")
 
@@ -287,21 +345,25 @@ def exp3_tables_figures():
     lines = []
     for ds in DATASETS:
         for comp in COMPARISONS:
-            r = df[(df.dataset == ds) & (df.comparison == comp) & (df.method == "da_hac")]
-            if r.empty:
-                continue
-            r = r.iloc[0]
-            rs = "--" if np.isnan(r.info_range_space) else f"{r.info_range_space:.0f} m"
-            rt = "--" if np.isnan(r.info_range_time) else f"{r.info_range_time:.0f} h"
-            lines.append(f"{DATASETS[ds].split(' (')[0]} & {COMPARISONS[comp]} & {rs} & {rt} & "
-                         f"{r.info_n_eff:.0f} & {r.df:.0f} & {r.info_tau2:.2e} \\\\")
+            for sch in ("blocked", "forward"):
+                r = df[(df.dataset == ds) & (df.comparison == comp) & (df.method == "da_hac") & (df.scheme == sch)]
+                if r.empty:
+                    continue
+                r = r.iloc[0]
+                rs = "--" if np.isnan(r.info_range_space) else f"{r.info_range_space:.0f} m"
+                rt = "--" if np.isnan(r.info_range_time) else f"{r.info_range_time:.0f} h"
+                rstar = RSTAR[0]
+                dec = ("indet." if r.info_range_ratio > rstar else ("reject" if r.pvalue < ALPHA else "not rej."))
+                lines.append(f"{DATASETS[ds].split(' (')[0]} & {COMPARISONS[comp]} & {SCHEME[sch]} & {rs} & {rt} & "
+                             f"{r.info_n_eff:.0f} & {r.df:.0f} & {r.info_range_ratio:.2f} & {dec} \\\\")
     (TAB / "exp3_diag.tex").write_text("\n".join(lines) + "\n")
 
     # Forest plot
     plot_order = [("random", "paired_t"), ("random", "nadeau_bengio"), ("blocked", "paired_t"),
-                  ("blocked", "block_bootstrap"), ("blocked", "mixed_model"), ("blocked", "da_hac")]
+                  ("blocked", "block_bootstrap"), ("blocked", "hering_genton"), ("blocked", "da_hac"),
+                  ("forward", "da_hac")]
     present = [d for d in DATASETS if not df[df.dataset == d].empty]
-    fig, axes = plt.subplots(len(present), 2, figsize=(7.0, 1.55 * len(present) + 0.4), squeeze=False)
+    fig, axes = plt.subplots(len(present), 3, figsize=(7.0, 1.7 * len(present) + 0.4), squeeze=False)
     for i, ds in enumerate(present):
         for j, comp in enumerate(COMPARISONS):
             ax = axes[i, j]
@@ -316,12 +378,12 @@ def exp3_tables_figures():
                 ax.plot(r.estimate, y, marker=mk, color=c, ms=5, mec="white", mew=0.8)
             ax.axvline(0, color=MUTED, lw=0.8, ls="--")
             ax.set_yticks(range(len(plot_order), 0, -1),
-                          [f"{s[0].upper()}: {PLAIN[m]}" for s, m in plot_order] if j == 0 else [""] * len(plot_order))
+                          [f"{SCHEME[s]}: {PLAIN[m]}" for s, m in plot_order] if j == 0 else [""] * len(plot_order))
             ax.tick_params(axis="y", labelsize=7)
             ax.grid(axis="y", visible=False)
             if i == 0:
-                ax.set_title(COMPARISONS[comp], color=INK)
-            if j == 1:
+                ax.set_title(COMPARISONS[comp], color=INK, fontsize=8)
+            if j == 2:
                 ax.text(1.02, 0.5, DATASETS[ds].split(" (")[0], transform=ax.transAxes, rotation=270,
                         va="center", ha="left", fontsize=7.5, color=MUTED)
     for ax in axes[-1]:
@@ -341,7 +403,7 @@ def exp3_tables_figures():
         cells = []
         for sch, m in [("random", "paired_t"), ("random", "iid_bootstrap"), ("blocked", "paired_t"),
                        ("blocked", "iid_bootstrap"), ("blocked", "block_bootstrap"), ("blocked", "mixed_model"),
-                       ("blocked", "dm_hac"), ("blocked", "da_hac")]:
+                       ("blocked", "dm_hac"), ("blocked", "hering_genton"), ("blocked", "da_hac")]:
             sub = s[(s.scheme == sch) & (s.method == m)]
             cells.append("--" if sub.empty else f"{100 * sub.reject.mean():.0f}")
         lines.append(f"{DATASETS[ds].split(' (')[0]} & " + " & ".join(cells) + r" \\")
@@ -373,6 +435,134 @@ def exp3_tables_figures():
         plt.close(fig)
 
 
+# ---------------------------------------------------------------------------
+# Experiment 1b: training correlation, robustness, decision rule
+# ---------------------------------------------------------------------------
+
+def choose_threshold(null_dahac):
+    """Largest range-ratio threshold whose conditional size stays in the MC band."""
+    best = None
+    for r in np.round(np.arange(0.10, 0.601, 0.025), 3):
+        det = null_dahac[null_dahac.info_range_ratio <= r]
+        if len(det) < 100:
+            continue
+        upper = ALPHA + 1.96 * np.sqrt(ALPHA * (1 - ALPHA) / len(det))
+        if det.reject.mean() <= upper:
+            best = r
+    return best
+
+
+def rule_rows(null, alt, group, label_fn, rstar):
+    """Rejection rates of DA-HAC under the three-way rule, by group."""
+    lines = []
+    for g in null[group].unique():
+        n0 = null[(null[group] == g) & (null.method == "da_hac")]
+        det = n0.info_range_ratio <= rstar
+        size_all = n0.reject.mean()
+        size_det = n0[det].reject.mean() if det.any() else np.nan
+        cells = [label_fn(g), f"{n0.info_range_ratio.median():.2f}", f"{100 * (~det).mean():.0f}",
+                 f"{100 * size_all:.1f}", "--" if np.isnan(size_det) else f"{100 * size_det:.1f}"]
+        if alt is not None:
+            a0 = alt[(alt[group] == g) & (alt.method == "da_hac")]
+            deta = a0.info_range_ratio <= rstar
+            cells.append(f"{100 * (a0.reject & deta).mean():.0f}" if len(a0) else "--")
+        lines.append(" & ".join(cells) + r" \\")
+    return lines
+
+
+def exp1b_tables(df1=None, df2=None):
+    out = {}
+    f = RES / "exp1b_rho.csv"
+    if f.exists():
+        d = add_flags(pd.read_csv(f))
+        d = d[d.delta == 0]
+        methods = ["paired_t", "block_bootstrap", "mixed_model", "hering_genton",
+                   "da_hac_rho0", "da_hac", "da_hac_rho0.5"]
+        lines = []
+        for sc in d.scenario.unique():
+            lvl, rho = sc.split("_rho")
+            cells = [f"{100 * d[(d.scenario == sc) & (d.method == m)].reject.mean():.1f}" for m in methods]
+            lines.append(f"{'None' if lvl == 'none' else 'Moderate'} & {rho} & " + " & ".join(cells) + r" \\")
+        (TAB / "exp1b_rho.tex").write_text("\n".join(lines) + "\n")
+
+    f = RES / "exp1b_robust.csv"
+    if f.exists():
+        d = add_flags(pd.read_csv(f))
+        names = {"baseline": "Baseline (moderate)", "anisotropic": "Anisotropic (4:1)",
+                 "gaussian_cov": "Gaussian covariance", "heteroscedastic": "Heteroscedastic",
+                 "nonstationary": "Non-stationary range", "irregular_sites": "Irregular sites"}
+        methods = ["paired_t", "block_bootstrap", "mixed_model", "hering_genton", "da_hac"]
+        lines = []
+        for sc, nm in names.items():
+            n0 = d[(d.scenario == sc) & (d.delta == 0)]
+            a0 = d[(d.scenario == sc) & (d.delta > 0)]
+            cells = [f"{100 * n0[n0.method == m].reject.mean():.1f}" for m in methods]
+            da = a0[a0.method == "da_hac"]
+            pt = a0[a0.method == "paired_t"]
+            cells += [f"{100 * da.covered.mean():.1f}", f"{100 * da.reject.mean():.0f}",
+                      f"{100 * pt.reject.mean():.0f}"]
+            lines.append(f"{nm} & " + " & ".join(cells) + r" \\")
+        (TAB / "exp1b_robust.tex").write_text("\n".join(lines) + "\n")
+
+    fp, fm = RES / "exp1b_range_pilot.csv", RES / "exp1b_range.csv"
+    if fp.exists() and fm.exists():
+        pilot = add_flags(pd.read_csv(fp))
+        rstar = choose_threshold(pilot[(pilot.method == "da_hac")])
+        out["rstar"] = rstar
+        RSTAR[0] = rstar
+        (TAB / "rstar.tex").write_text(f"\\renewcommand{{\\rstar}}{{{rstar:g}}}\n")
+        main = add_flags(pd.read_csv(fm))
+        lab = lambda g: f"{3 * float(g[1:]):g}"
+        lines = rule_rows(main, None, "scenario", lab, rstar)
+        (TAB / "exp1b_range.tex").write_text("\n".join(lines) + "\n")
+        # pooled validation on the main experiments
+        lines = []
+        if df1 is not None:
+            n1 = df1[df1.delta == 0]
+            lines += [r"\multicolumn{6}{@{}l}{\emph{Experiment 1 (alternative: $\delta=0.2$)}}\\"]
+            lines += rule_rows(n1, df1[df1.delta == 0.2], "level", str.capitalize, rstar)
+        if df2 is not None:
+            b = df2[df2.scheme == "blocked"]
+            lines += [r"\multicolumn{6}{@{}l}{\emph{Experiment 2 (alternative: $\gamma=0.2$)}}\\"]
+            lines += rule_rows(b[b.gamma == 0], b[b.gamma == 0.2], "level", str.capitalize, rstar)
+        (TAB / "rule_validation.tex").write_text("\n".join(lines) + "\n")
+
+        # Figure: null rejection rate of DA-HAC and paired t against the range ratio
+        pooled = [main.assign(src="1b")]
+        if df1 is not None:
+            pooled.append(df1[df1.delta == 0].assign(src="1"))
+        if df2 is not None:
+            pooled.append(df2[(df2.scheme == "blocked") & (df2.gamma == 0)].assign(src="2"))
+        allnull = pd.concat(pooled, ignore_index=True)
+        for c in ("scenario", "level"):
+            if c in allnull:
+                allnull[c] = allnull[c].fillna("")
+        dah = allnull[allnull.method == "da_hac"].copy()
+        keycols = ["src", "scenario", "level", "rep"]
+        keycols = [c for c in keycols if c in allnull]
+        rr = dah.set_index(keycols).info_range_ratio
+        bins = [0, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.7]
+        fig, ax = plt.subplots(figsize=(4.6, 2.6))
+        for m in ["paired_t", "block_bootstrap", "hering_genton", "da_hac"]:
+            sub = allnull[allnull.method == m].set_index(keycols)
+            sub = sub.assign(rr=rr.reindex(sub.index).values)
+            sub["bin"] = pd.cut(sub.rr, bins)
+            g = sub.groupby("bin", observed=True).reject.agg(["mean", "size"])
+            g = g[g["size"] >= 50]
+            x = [iv.mid for iv in g.index]
+            c, mk = STYLE[m]
+            ax.plot(x, g["mean"], color=c, marker=mk, lw=2.2 if m == "da_hac" else 1.4, label=PLAIN[m])
+        ax.axhline(ALPHA, color=MUTED, lw=0.8, ls="--")
+        ax.axvline(rstar, color=INK, lw=0.8, ls=":")
+        ax.text(rstar, ax.get_ylim()[1] * 0.97, f" $r^*={rstar:g}$", va="top", fontsize=7.5, color=INK)
+        ax.set_xlabel("Estimated range ratio $\\max_q b_q/L_q$ (binned)")
+        ax.set_ylabel("Rejection rate of a true null")
+        ax.legend(fontsize=7, loc="upper left")
+        fig.savefig(FIG / "rule.pdf")
+        plt.close(fig)
+    return out
+
+
 def main():
     FIG.mkdir(parents=True, exist_ok=True)
     TAB.mkdir(parents=True, exist_ok=True)
@@ -385,6 +575,8 @@ def main():
     if (RES / "exp2.csv").exists():
         df2 = add_flags(pd.read_csv(RES / "exp2.csv"))
         summary["exp2"] = exp2_tables_figures(df2)
+    exp1b = exp1b_tables(df1 if "exp1" in summary else None, df2 if "exp2" in summary else None)
+    summary.update(exp1b)
     exp3_tables_figures()
     print(summary)
 

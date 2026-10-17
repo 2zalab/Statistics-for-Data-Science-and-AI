@@ -16,12 +16,19 @@ def grid_coords(side: int) -> np.ndarray:
     return np.column_stack([xs.ravel(), ys.ravel()]).astype(float)
 
 
-def spatial_cholesky(coords: np.ndarray, scale: float):
-    """Cholesky factor of the exponential correlation matrix (None if ``scale == 0``)."""
+def spatial_cholesky(coords: np.ndarray, scale: float, kind: str = "exp", aniso=(1.0, 1.0)):
+    """Cholesky factor of a spatial correlation matrix (None if ``scale == 0``).
+
+    ``kind='exp'`` gives ``exp(-h / a)`` and ``kind='gauss'`` the smoother
+    ``exp(-(h / a)^2)``; ``aniso`` stretches the coordinate axes, so that the
+    scale along axis j is ``a * aniso[j]``.
+    """
     if scale <= 0:
         return None
-    c = np.exp(-cdist(coords, coords) / scale)
-    return np.linalg.cholesky(c + 1e-10 * np.eye(len(c)))
+    z = coords / np.asarray(aniso, float)
+    h = cdist(z, z) / scale
+    c = np.exp(-h) if kind == "exp" else np.exp(-h ** 2)
+    return np.linalg.cholesky(c + 1e-8 * np.eye(len(c)))
 
 
 def st_fields(rng, chol, n_sites: int, n_times: int, phi: float, n_fields: int) -> np.ndarray:

@@ -49,7 +49,7 @@ def run_rep(job):
     d = (eps - e_a) ** 2 - (eps - np.sqrt(1 + delta) * e_b) ** 2 + eta[folds]
     res = blocked_cv_tests(d, folds, blocks, cs, t, sites, rng, kappas=kappas,
                            fixed_bandwidth=(TILE, TIME_BLOCK),
-                           max_lag_space=SIDE / 2, max_lag_time=N_TIMES / 2)
+                           max_lag_space=SIDE / 2, max_lag_time=N_TIMES / 2, rhos=(0.0, 0.5))
     return [dict(level=level, delta=delta, rep=rep, truth=-delta, **r.as_dict()) for r in res]
 
 

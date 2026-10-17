@@ -44,15 +44,34 @@ Under~\eqref{eq:model}, the between-fold variance of fold means exceeds their wi
 \begin{equation}\label{eq:tau}
 \hat\tau^2=\max\Bigl\{0,\ s_m^2-\frac1K\sum_{k=1}^K\hat V_k\Bigr\}.
 \end{equation}
-Since $\E[s_m^2]$ subtracts the covariance between fold effects (Proposition~\ref{prop:pairedt}), $\hat\tau^2$ targets $\tau^2(1-\rho)$ rather than $\tau^2$. The correlation $\rho$ is not identifiable from one cross-validation run~\cite{bengio2004}; following Nadeau and Bengio~\cite{nadeau2003} we set it to the test fraction $\rho=n_{\text{test}}/n=1/K$. Then $V_\eta=\tau^2[1/K+\rho(1-1/K)]=\zeta_K\,\tau^2(1-\rho)$ with
-\[
-\zeta_K=\frac1K+\frac1{K-1},
-\]
-which is exactly the Nadeau--Bengio inflation $1/J+n_{\text{test}}/n_{\text{train}}$ with $J=K$ splits. The final variance estimate is
-\begin{equation}\label{eq:vtotal}
-\hat V=\hat V_u+\zeta_K\hat\tau^2 .
+Since $\E[s_m^2]$ subtracts the covariance between fold effects (Proposition~\ref{prop:pairedt}), $\hat\tau^2$ targets $\tau^2(1-\rho)$ rather than $\tau^2$. The correlation $\rho$ is not identifiable from one cross-validation run~\cite{bengio2004}. For an assumed value $\rho_0$, the training component of~\eqref{eq:var} is $V_\eta=\tau^2[1/K+\rho_0(1-1/K)]=\zeta_K(\rho_0)\,\tau^2(1-\rho_0)$, with
+\begin{equation}\label{eq:zeta}
+\zeta_K(\rho_0)=\frac{1/K+\rho_0(1-1/K)}{1-\rho_0},\qquad \zeta_K(1/K)=\frac1K+\frac1{K-1}.
 \end{equation}
-Fold-centring removes from $\tilde u$ the fold-level average of $u$ itself, so $\hat V_u$ is slightly biased downward when the dependence range is comparable to the fold size; because $s_m^2$ contains that same component while the $\hat V_k$ do not, the deficit is transferred to $\hat\tau^2$, which partially compensates for it.
+Following Nadeau and Bengio~\cite{nadeau2003}, our default is the test fraction $\rho_0=n_{\text{test}}/n=1/K$, for which $\zeta_K$ is exactly their inflation $1/J+n_{\text{test}}/n_{\text{train}}$ with $J=K$ splits. The final variance estimate is
+\begin{equation}\label{eq:vtotal}
+\hat V=\hat V_u+\zeta_K(\rho_0)\,\hat\tau^2 .
+\end{equation}
+
+\subsection{What the variance estimator targets}
+
+The following proposition makes explicit the conditions under which~\eqref{eq:vtotal} is unbiased, and the direction of its bias when they fail. We consider the untruncated estimator $\hat\tau^2_{\mathrm{raw}}=s_m^2-K^{-1}\sum_k\hat V_k$ and $\hat V_{\mathrm{raw}}=\hat V_u+\zeta_K(\rho_0)\hat\tau^2_{\mathrm{raw}}$.
+
+\begin{proposition}\label{prop:bias}
+Under the working model~\eqref{eq:model} with equal fold sizes, let $\bar m^u_k$ be the fold means of $u$, $v_u=K^{-1}\sum_k\Var(\bar m^u_k)$, $c_u=[K(K-1)]^{-1}\sum_{k\neq l}\Cov(\bar m^u_k,\bar m^u_l)$, and let $\beta_u=\E[\hat V_u]-V_u$ and $\bar\beta=K^{-1}\sum_k\{\E[\hat V_k]-\Var(\bar m^u_k)\}$ be the biases of the kernel estimators. Then
+\begin{equation}\label{eq:bias}
+\E[\hat V_{\mathrm{raw}}]-\Var(\hat\Delta)
+=\underbrace{\beta_u-\zeta_K(\rho_0)\,(c_u+\bar\beta)}_{\text{test-sampling part}}
++\underbrace{\tau^2\Bigl[(1-\rho)\,\zeta_K(\rho_0)-\tfrac1K-\rho\bigl(1-\tfrac1K\bigr)\Bigr]}_{\text{training part}} .
+\end{equation}
+In particular, $\hat V_{\mathrm{raw}}$ is unbiased if (i) $\rho_0=\rho$, (ii) fold means of $u$ are uncorrelated across folds ($c_u=0$) and (iii) the kernel estimators are unbiased ($\beta_u=\bar\beta=0$). The training part is negative, i.e.\ the variance is underestimated, if and only if $\rho>\rho_0$.
+\end{proposition}
+
+\begin{proof}
+The fold means are $m_k=\Delta_n+\eta_k+\bar m^u_k$ with $\eta$ independent of $u$, so their average variance is $\tau^2+v_u$ and their average covariance $\rho\tau^2+c_u$. By the identity in the proof of Proposition~\ref{prop:pairedt}, $\E[s_m^2]=(1-\rho)\tau^2+v_u-c_u$, and by definition $\E[K^{-1}\sum_k\hat V_k]=v_u+\bar\beta$, hence $\E[\hat\tau^2_{\mathrm{raw}}]=(1-\rho)\tau^2-c_u-\bar\beta$. With equal fold sizes, \eqref{eq:var} reads $\Var(\hat\Delta)=V_u+\tau^2[1/K+\rho(1-1/K)]$ and $\E[\hat V_u]=V_u+\beta_u$. Substituting gives~\eqref{eq:bias}. Writing $g(r)=1/K+r(1-1/K)$, the training part is $\tau^2[(1-\rho)g(\rho_0)/(1-\rho_0)-g(\rho)]$, which vanishes at $\rho=\rho_0$ and is strictly decreasing in $\rho$, with derivative $-\tau^2[g(\rho_0)/(1-\rho_0)+1-1/K]<0$.
+\end{proof}
+
+Proposition~\ref{prop:bias} separates three sources of error, each of which is evaluated empirically in Section~\ref{sec:sim1}. \emph{Training correlation.} For $K=5$ and $\rho_0=1/K$, the training part equals $\tau^2(0.25-1.25\rho)$: assuming $\rho_0=0.2$ when $\rho=0.5$ leaves $0.375\tau^2$ of the $0.6\tau^2$ training variance unaccounted for, whereas $\rho<\rho_0$ errs on the conservative side. The sensitivity of the test to this choice is reported in Section~\ref{sec:sim1rho}. \emph{Cross-fold covariance.} $c_u$ is the covariance between test-sampling fluctuations of different folds; it is reduced by allocating whole blocks to folds and by buffers, and vanishes when blocks are larger than the dependence range. Because it enters with a negative sign, residual cross-fold dependence makes the test anti-conservative. \emph{Kernel bias.} Fold-centring removes the fold-level average of $u$ from $\tilde u$, and the Bartlett kernel down-weights covariances near the bandwidth; both make $\beta_u$ and $\bar\beta$ negative when the dependence range is not small relative to the blocks and to the domain. The term $-\zeta_K\bar\beta$ partially offsets $\beta_u$: the part of the fold-level variance missed by the within-fold estimators is recovered by $\hat\tau^2$. Finally, truncation at zero, $\hat\tau^2=\max\{0,\hat\tau^2_{\mathrm{raw}}\}$, can only increase the variance, so $\E[\hat V]\ge\E[\hat V_{\mathrm{raw}}]$; its effect on the reference distribution is discussed next.
 
 \subsection{Reference distribution}
 
@@ -63,6 +82,20 @@ HAC tests are known to over-reject when the effective sample size is small~\cite
 \end{equation}
 with $\hat n_{\mathrm{eff}}=n^{-1}\sum_i\tilde u_i^2/\hat V_u$ truncated to $[2,n]$, where the product runs over the spatial and temporal axes with a positive bandwidth, and $L_q$ is the extent of the domain along axis $q$. The second term of $\nu_u$ is the classical approximation to the degrees of freedom of a kernel spectral estimate~\cite{andrews1991}: for a lag window $k$ of bandwidth $b$ on a record of length $L$, $\Var(\hat V)/V^2\approx2(b/L)\int k^2$, with $\int k^2=2/3$ for the Bartlett window, and the factors multiply for a product kernel. It caps the degrees of freedom when the bandwidth is not small compared with the domain, the regime in which HAC tests are most anti-conservative. The test statistic $T=\hat\Delta/\sqrt{\hat V}$ is referred to a Student $t_{\hat\nu}$ distribution, and the $(1-\alpha)$ confidence interval is $\hat\Delta\pm t_{\hat\nu,1-\alpha/2}\sqrt{\hat V}$.
 
+When $\hat\tau^2_{\mathrm{raw}}\le0$ the training term vanishes and $\hat\nu=\nu_u$, which may be large even though only $K$ folds inform the training component. Truncation occurs when the observed dispersion of fold means is no larger than its predicted test-sampling part, that is, when the data show no evidence of a training effect; the variance itself is then not underestimated on average (Proposition~\ref{prop:bias}), but its sampling variability is understated. Section~\ref{sec:sim1} reports the rejection rate conditionally on truncation to check that this boundary case does not cause over-rejection.
+
+\subsection{A three-way decision rule}\label{sec:rule}
+
+Proposition~\ref{prop:bias} shows that no correction of the variance can be exact when the dependence range is comparable to the blocks and to the study domain: $c_u$, $\beta_u$ and $\bar\beta$ are then all non-negligible and are not identifiable from one sample. We therefore attach to DA-HAC an explicit decision rule with three outcomes:
+\begin{equation}\label{eq:rule}
+\text{decision}=\begin{cases}
+\text{indeterminate} & \text{if } \max_q b_q/L_q>r^\ast,\\
+\text{reject } H_0 & \text{if } \max_q b_q/L_q\le r^\ast\text{ and } p<\alpha,\\
+\text{do not reject } H_0 & \text{otherwise,}
+\end{cases}
+\end{equation}
+where $b_q/L_q$ is the estimated bandwidth relative to the extent of the domain along axis $q$ (the range ratio). An ``indeterminate'' outcome states that the sample contains too few effectively independent regions for the comparison to be resolved, whatever the observed difference. The threshold $r^\ast=\rstar$ was chosen in a pilot study on separate random seeds as the largest value for which the conditional rejection rate of a true null stayed within the Monte Carlo band of the nominal level, and was then validated on new seeds and on the other experiments (Section~\ref{sec:sim1rule}).
+
 \begin{algorithm}[t]
 \caption{DA-HAC test for $H_0:\Delta_n=0$}\label{alg:dahac}
 \begin{algorithmic}[1]
@@ -71,9 +104,10 @@ with $\hat n_{\mathrm{eff}}=n^{-1}\sum_i\tilde u_i^2/\hat V_u$ truncated to $[2,
 \State Fit exponential models to the spatial and temporal empirical variograms of $\tilde u$; \ $b_S\gets\kappa\hat r_S$, $b_T\gets\kappa\hat r_T$
 \State Enumerate pairs with $w_{ij}>0$ under the product-Bartlett kernel~\eqref{eq:kernel}
 \State Compute $\hat V_u$ and $\hat V_1,\dots,\hat V_K$ by~\eqref{eq:vu}
-\State $\hat\tau^2\gets\max\{0,s_m^2-K^{-1}\sum_k\hat V_k\}$; \ $\hat V\gets\hat V_u+(1/K+1/(K-1))\hat\tau^2$
+\State $\hat\tau^2\gets\max\{0,s_m^2-K^{-1}\sum_k\hat V_k\}$; \ $\hat V\gets\hat V_u+\zeta_K(\rho_0)\hat\tau^2$ \Comment{default $\rho_0=1/K$}
 \State Compute $\hat n_{\mathrm{eff}}$, $\nu_u$ and $\hat\nu$ by~\eqref{eq:df}, and the range ratio $\max_q b_q/L_q$
-\State \Return $p=2\,\Pr(t_{\hat\nu}>|\hat\Delta|/\sqrt{\hat V})$ and the interval $\hat\Delta\pm t_{\hat\nu,1-\alpha/2}\sqrt{\hat V}$
+\State $p\gets2\,\Pr(t_{\hat\nu}>|\hat\Delta|/\sqrt{\hat V})$; interval $\hat\Delta\pm t_{\hat\nu,1-\alpha/2}\sqrt{\hat V}$
+\State \Return $p$, the interval, the diagnostics and the decision~\eqref{eq:rule}: indeterminate if $\max_q b_q/L_q>r^\ast$
 \end{algorithmic}
 \end{algorithm}
 

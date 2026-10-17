@@ -13,9 +13,11 @@ from .inference import (
     dm_hac,
     fold_means,
     hac_variance,
+    hering_genton,
     iid_bootstrap,
     mixed_model,
     paired_t_folds,
+    three_way_decision,
 )
 from .splitting import blocked_folds, make_blocks, random_folds, training_mask
 from .variogram import empirical_variogram, fit_exponential_variogram, dependence_ranges
@@ -32,10 +34,12 @@ __all__ = [
     "fit_exponential_variogram",
     "fold_means",
     "hac_variance",
+    "hering_genton",
     "iid_bootstrap",
     "make_blocks",
     "mixed_model",
     "paired_t_folds",
     "random_folds",
+    "three_way_decision",
     "training_mask",
 ]

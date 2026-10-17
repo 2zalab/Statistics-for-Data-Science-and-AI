@@ -57,5 +57,8 @@ The paired $t$-test is therefore valid only if fold means are uncorrelated. Unde
 \paragraph{Cluster methods.}
 The block bootstrap and the random-intercept linear mixed model (LMM) treat the $G$ blocks as independent clusters. They capture all within-block covariance, including the fold effects of~\eqref{eq:model}, but ignore covariance between neighbouring blocks, which is non-negligible when the dependence range is comparable with the block size, and they ignore the correlation $\rho$ of fold effects.
 
+\paragraph{Parametric spatial comparison.}
+The test of Hering and Genton~\cite{hering2011}, which we extend to space--time with a separable exponential covariance fitted to the spatial and temporal variograms of the centred differentials, estimates $V_u$ from a parametric model. It is designed for fixed predictors and therefore omits $V_\eta$, and its validity depends on the adequacy of the covariance model.
+
 \paragraph{Time-only HAC.}
 Applying the Diebold--Mariano test with a Newey--West variance separately to the series of each site, as is often done for panels of forecasts, handles temporal dependence but ignores the correlation between sites at the same time and the fold effects.

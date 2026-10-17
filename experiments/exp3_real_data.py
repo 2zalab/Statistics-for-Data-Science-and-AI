@@ -7,8 +7,9 @@
 * ``lasrosas``     yield-monitor maize data from Las Rosas, Argentina (1999,
   2001); spatial regression of yield, squared loss.
 
-For each data set two comparisons are made (gradient boosting vs random
-forest, gradient boosting vs a linear baseline) under random and blocked CV,
+For each data set three pairwise comparisons are made (gradient boosting,
+random forest, linear baseline) under random and blocked CV and, for the two
+hourly data sets, under forward-chaining (rolling-origin) CV,
 followed by a "seed null" diagnostic: gradient boosting compared with itself
 under different random seeds, a comparison whose expected loss differential
 is zero by construction.
@@ -102,9 +103,10 @@ def make_learner(kind, task, seed):
 
 
 def oof_loss(ds, kind, folds, seed, masks=None):
+    """Out-of-fold losses; folds labelled -1 are never tested (forward chaining)."""
     x, y, task = ds["x"], ds["y"], ds["task"]
-    loss = np.empty(len(y))
-    for k in np.unique(folds):
+    loss = np.full(len(y), np.nan)
+    for k in np.unique(folds[folds >= 0]):
         test = folds == k
         train = ~test if masks is None else masks[k]
         model = make_learner(kind, task, seed + int(k)).fit(x[train], y[train])
@@ -128,6 +130,27 @@ def partitions(ds, rng):
     masks = {k: training_mask(folds == k, ds["coords"], ds["times"], ds["buffer_space"], ds["buffer_time"])
              for k in range(K)}
     return rand, blocks, folds, masks
+
+
+def forward_partition(ds):
+    """Forward chaining: K consecutive groups of time blocks; group k >= 1 is
+    predicted from all observations before it (minus the buffer), group 0 is
+    used for training only."""
+    t = ds["times"]
+    blocks = make_blocks(None, t, None, ds["time_block"])
+    folds = (blocks * K) // (blocks.max() + 1)
+    masks = {k: t < t[folds == k].min() - ds["buffer_time"] for k in range(1, K)}
+    folds = np.where(folds == 0, -1, folds)
+    return blocks, folds, masks
+
+
+def compare_forward(ds, kind_a, kind_b, fparts, rng, seed_a=1, seed_b=2):
+    blocks, folds, masks = fparts
+    test = folds >= 0
+    d = (oof_loss(ds, kind_a, folds, seed_a + 11, masks) - oof_loss(ds, kind_b, folds, seed_b + 11, masks))[test]
+    res = blocked_cv_tests(d, folds[test], blocks[test], None, ds["times"][test], ds["sites"][test], rng,
+                           ablations=False, max_lag_time=ds["max_lag_time"])
+    return [dict(scheme="forward", **r_.as_dict()) for r_ in res]
 
 
 def compare(ds, kind_a, kind_b, parts, rng, seed_a=1, seed_b=2, repeats=R_REPEATS, keep_d=False):
@@ -164,8 +187,11 @@ def main():
         parts = partitions(ds, rng)
         t0 = time.time()
         rows, varios = [], []
-        for a, b in [("xgb", "rf"), ("xgb", "linear")]:
+        fparts = forward_partition(ds) if ds["coords"] is None else None
+        for a, b in [("xgb", "rf"), ("xgb", "linear"), ("rf", "linear")]:
             res, d = compare(ds, a, b, parts, rng, keep_d=True)
+            if fparts is not None:
+                res += compare_forward(ds, a, b, fparts, rng)
             rows += [dict(dataset=name, comparison=f"{a}_vs_{b}", **r) for r in res]
             _, f = np.unique(parts[2], return_inverse=True)
             u = d - (np.bincount(f, weights=d) / np.bincount(f))[f]

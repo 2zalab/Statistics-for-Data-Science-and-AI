@@ -67,3 +67,24 @@ def test_da_hac_reduces_to_t_like_test_without_dependence():
     r = da_hac(d, folds, cs, t, bandwidth=(0.0, 0.0), training_term=False)
     assert r.se == pytest.approx(np.sqrt(np.mean((d - 0) ** 2) / len(d)), rel=0.1)
     assert paired_t_folds(d, folds).df == 4
+
+
+def test_default_rho_is_nadeau_bengio_inflation():
+    rng = np.random.default_rng(5)
+    cs, t = panel_index(grid_coords(8), 10)
+    folds = blocked_folds(make_blocks(cs, t, 4, 5), 5, rng)
+    d = rng.standard_normal(len(t)) + 0.3 * rng.standard_normal(5)[folds]
+    a, b = da_hac(d, folds, cs, t, bandwidth=(0.0, 0.0),
+                  variants=[("a", True, "normal"), ("b", True, "normal", 0.2)])
+    zeta = 1 / 5 + 1 / 4
+    assert a.se == pytest.approx(b.se)
+    assert a.se ** 2 == pytest.approx(a.info["v_hac"] + zeta * a.info["tau2"])
+
+
+def test_hering_genton_without_dependence_matches_iid_variance():
+    from dacomp import hering_genton
+    rng = np.random.default_rng(6)
+    cs, t = panel_index(grid_coords(10), 10)
+    d = rng.standard_normal(len(t))
+    r = hering_genton(d, cs, t, max_lag_space=5, max_lag_time=5)
+    assert r.se == pytest.approx(d.std() / np.sqrt(len(d)), rel=0.25)

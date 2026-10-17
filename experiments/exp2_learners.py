@@ -96,7 +96,7 @@ def run_rep(job):
     masks = {k: training_mask(folds == k, cs, t, 1.0, 1.0) for k in range(K)}
     d = oof_squared_loss(xa, y, folds, fit_seed + 7, masks) - oof_squared_loss(xb, y, folds, fit_seed + 57, masks)
     res = blocked_cv_tests(d, folds, blocks, cs, t, sites, rng, ablations=False,
-                           max_lag_space=SIDE / 2, max_lag_time=N_TIMES / 2)
+                           max_lag_space=SIDE / 2, max_lag_time=N_TIMES / 2, rhos=(0.0, 0.5))
     rows += [dict(base, scheme="blocked", **r_.as_dict()) for r_ in res]
     return rows
 

@@ -211,7 +211,7 @@ def dm_hac(d, sites, times, alpha=0.05, lag=None, method="dm_hac"):
 def da_hac(d, folds, coords_space=None, times=None, alpha=0.05, kappa=1.0,
            bandwidth=None, training_term=True, reference="satterthwaite",
            max_lag_space=None, max_lag_time=None, ranges=None, method="da_hac",
-           variants=None):
+           variants=None, rho=None):
     """Dependence-aware HAC test with variogram-calibrated bandwidth (proposed).
 
     Steps
@@ -226,8 +226,10 @@ def da_hac(d, folds, coords_space=None, times=None, alpha=0.05, kappa=1.0,
     4. ``tau2``: method-of-moments estimate of the variance of the fold-level
        (training-induced) effects, i.e. the excess of the between-fold variance
        of fold means over their kernel-estimated within-fold variance.
-    5. ``V = V_hac + zeta_K tau2`` with ``zeta_K = 1/K + 1/(K-1)``, the
-       Nadeau-Bengio inflation for correlated training sets.
+    5. ``V = V_hac + zeta tau2`` with
+       ``zeta = (1/K + rho (1 - 1/K)) / (1 - rho)``, where ``rho`` is the
+       assumed correlation between fold effects. The default ``rho = 1/K``
+       gives ``zeta = 1/K + 1/(K-1)``, the Nadeau-Bengio inflation.
     6. Reference distribution: Student t with Welch-Satterthwaite degrees of
        freedom combining the HAC component, with
        ``nu_hac = min(n_eff - 1, prod_axis 3 L / (2 b))`` where
@@ -240,8 +242,9 @@ def da_hac(d, folds, coords_space=None, times=None, alpha=0.05, kappa=1.0,
     comparable to the domain; values above about 0.25 indicate that no
     procedure can be well calibrated from a single sample.
 
-    ``variants``, a list of ``(name, training_term, reference)``, returns one
-    result per variant while computing the kernel sums only once.
+    ``variants``, a list of ``(name, training_term, reference)`` or
+    ``(name, training_term, reference, rho)``, returns one result per variant
+    while computing the kernel sums only once.
     """
     d = np.asarray(d, float)
     n = len(d)
@@ -264,7 +267,8 @@ def da_hac(d, folds, coords_space=None, times=None, alpha=0.05, kappa=1.0,
     v_hac, v_fold = hac_variance(u, coords_space, times, b_s or 0.0, b_t or 0.0, groups=f)
     s2u = np.mean(u ** 2)
     n_eff = float(np.clip(s2u / max(v_hac, 1e-300), 2.0, n))
-    tau2 = max(0.0, fm.var(ddof=1) - v_fold.mean()) if k > 1 else 0.0
+    tau2_raw = fm.var(ddof=1) - v_fold.mean() if k > 1 else 0.0
+    tau2 = max(0.0, tau2_raw)
 
     # Degrees of freedom of a product-kernel variance estimate (Priestley):
     # Var(V)/V^2 ~ 2 prod_axis (b * int k^2) / L, with int k^2 = 2/3 for Bartlett,
@@ -284,11 +288,12 @@ def da_hac(d, folds, coords_space=None, times=None, alpha=0.05, kappa=1.0,
             "range_time": r_t if r_t is not None else np.nan,
             "b_space": b_s if b_s is not None else np.nan,
             "b_time": b_t if b_t is not None else np.nan,
-            "v_hac": v_hac, "tau2": tau2, "n_eff": n_eff, "nu_kernel": nu_kernel,
-            "range_ratio": range_ratio}
+            "v_hac": v_hac, "tau2": tau2, "tau2_raw": tau2_raw, "n_eff": n_eff,
+            "nu_kernel": nu_kernel, "range_ratio": range_ratio}
 
-    def finish(name, use_tau, ref):
-        zeta = 1.0 / k + 1.0 / (k - 1)
+    def finish(name, use_tau, ref, rho_=rho):
+        r = 1.0 / k if rho_ is None else rho_
+        zeta = (1.0 / k + r * (1 - 1.0 / k)) / (1 - r)
         v_train = zeta * tau2 if use_tau else 0.0
         v = v_hac + v_train
         if ref == "normal":
@@ -301,4 +306,71 @@ def da_hac(d, folds, coords_space=None, times=None, alpha=0.05, kappa=1.0,
 
     if variants is None:
         return finish(method, training_term, reference)
-    return [finish(name, use_tau, ref) for name, use_tau, ref in variants]
+    return [finish(*v) for v in variants]
+
+
+def three_way_decision(result, alpha=0.05, max_range_ratio=0.25):
+    """Decision rule attached to DA-HAC.
+
+    Returns ``'indeterminate'`` when the estimated dependence range is too large
+    relative to the study domain (``info['range_ratio'] > max_range_ratio``),
+    in which case the sample contains too few effectively independent regions
+    for a calibrated comparison; otherwise ``'reject'`` or ``'not rejected'``.
+    """
+    if result.info.get("range_ratio", 0.0) > max_range_ratio:
+        return "indeterminate"
+    return "reject" if result.pvalue < alpha else "not rejected"
+
+
+def hering_genton(d, coords_space=None, times=None, alpha=0.05, max_lag_space=None,
+                  max_lag_time=None, method="hering_genton"):
+    """Spatial prediction comparison test of Hering and Genton (2011), space-time version.
+
+    The covariance of the loss differential is modelled parametrically: an
+    exponential model with nugget is fitted to the empirical spatial and
+    temporal semivariograms of the centred differentials and combined into a
+    separable correlation ``g_S(h) g_T(l)``. The variance of the mean is
+    ``n^-2 sum_ij s^2 g_S(h_ij) g_T(l_ij)`` and the statistic is referred to a
+    normal distribution. Training-induced fold effects are not modelled.
+    """
+    d = np.asarray(d, float)
+    n = len(d)
+    u = d - d.mean()
+    s2 = np.mean(u ** 2)
+    _, _, fits = dependence_ranges(u, coords_space, times, max_lag_space, max_lag_time)
+
+    def corr_params(direction):
+        if direction not in fits:
+            return 0.0, 0.0
+        f = fits[direction][1]
+        sill = f["c0"] + f["c1"]
+        return (f["c1"] / sill if sill > 0 else 0.0), f["a"]
+
+    w_s, a_s = corr_params("space")
+    w_t, a_t = corr_params("time")
+    cut = np.log(1e3)  # neglect correlations below 1e-3
+    cols, scales = [], []
+    if coords_space is not None:
+        cs = np.asarray(coords_space, float).reshape(n, -1)
+        cols.append(cs)
+        scales += [cut * a_s if (w_s > 0 and a_s > 0) else 1e-9] * cs.shape[1]
+    if times is not None:
+        t = np.asarray(times, float)
+        cols.append(t[:, None])
+        scales.append(cut * a_t if (w_t > 0 and a_t > 0) else 1e-9)
+    total = n * s2
+    if cols:
+        z = np.hstack(cols) / np.array(scales)
+        pairs = cKDTree(z).query_pairs(r=1.0, p=np.inf, output_type="ndarray")
+        if len(pairs):
+            g = np.ones(len(pairs))
+            if coords_space is not None:
+                h = np.linalg.norm(cs[pairs[:, 0]] - cs[pairs[:, 1]], axis=1)
+                g *= np.where(h > 0, w_s * np.exp(-h / max(a_s, 1e-12)), 1.0)
+            if times is not None:
+                lag = np.abs(t[pairs[:, 0]] - t[pairs[:, 1]])
+                g *= np.where(lag > 0, w_t * np.exp(-lag / max(a_t, 1e-12)), 1.0)
+            total += 2 * s2 * g.sum()
+    v = max(total, 0.0) / n ** 2
+    return _t_result(method, d.mean(), np.sqrt(v), np.inf, alpha,
+                     {"range_space": 3 * a_s if w_s > 0 else 0.0, "range_time": 3 * a_t if w_t > 0 else 0.0})
