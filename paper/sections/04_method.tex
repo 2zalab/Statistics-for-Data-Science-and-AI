@@ -1,6 +1,12 @@
 \section{Dependence-aware HAC inference}\label{sec:method}
 
-DA-HAC estimates the two components of~\eqref{eq:var} from the loss differentials of a single blocked cross-validation run. Its steps are summarised in Algorithm~\ref{alg:dahac} and detailed below.
+DA-HAC estimates the two components of~\eqref{eq:var} from the loss differentials of a single blocked cross-validation run. Figure~\ref{fig:architecture} gives an overview of the complete procedure: blocked cross-validation produces the loss differentials (stage~1); two parallel branches estimate the test-sampling variance, through variogram-calibrated kernel weights, and the training-induced variance, from the dispersion of fold means (stage~2); the two are combined into a variance, a reference distribution and diagnostics (stage~3). The steps are summarised in Algorithm~\ref{alg:dahac} and detailed below.
+
+\begin{figure}[t]
+\centering
+\resizebox{\textwidth}{!}{\input{figures/architecture.tex}}
+\caption{Architecture of the proposed comparison procedure. Stage~1 (grey) is a standard blocked cross-validation that yields the per-observation loss differentials $d_i$ and defines the estimand. Stage~2 (DA-HAC) estimates the test-sampling variance $\hat V_u$ (blue branch, read from right to left: fold-centring, variograms, bandwidths, product-Bartlett kernel) and the training-induced variance $\zeta_K\hat\tau^2$ (orange branch). Stage~3 (green) combines them into the total variance, the Satterthwaite degrees of freedom and the test, together with the diagnostics used in Section~\ref{sec:discussion}.}\label{fig:architecture}
+\end{figure}
 
 \subsection{Fold-centred differentials}
 

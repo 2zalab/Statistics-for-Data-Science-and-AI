@@ -1,0 +1,68 @@
+% Architecture of the proposed comparison procedure (included by main.tex).
+% Reading order: stage 1 left to right, stage 2 right to left, stage 3 left to right.
+\begin{tikzpicture}[
+    font=\footnotesize,
+    >=Stealth,
+    node distance=5mm and 5mm,
+    box/.style={draw=#1!75!black, fill=#1!10, rounded corners=2pt, align=center,
+                minimum height=13mm, text width=29mm, inner sep=2pt},
+    box/.default=gray,
+    lane/.style={draw=#1!70!black, dashed, rounded corners=4pt, inner sep=2.5mm},
+    arr/.style={->, thick, draw=black!65},
+    lbl/.style={font=\scriptsize\bfseries, text=#1!70!black, anchor=south west, inner sep=1pt},
+]
+\definecolor{cpipe}{HTML}{52514E}
+\definecolor{ctest}{HTML}{2A78D6}
+\definecolor{ctrain}{HTML}{EB6834}
+\definecolor{cout}{HTML}{1BAF7A}
+
+% ---------------- Stage 1: blocked cross-validation ----------------
+\node[box=cpipe] (data) {\textbf{Data}\\[1pt] $(x_i,y_i)$ observed at\\ location $s_i$, time $t_i$};
+\node[box=cpipe, right=of data] (block) {\textbf{Blocking}\\[1pt] $G$ space--time blocks\\ $\to K$ folds, buffer};
+\node[box=cpipe, right=of block] (fit) {\textbf{Refit $A$ and $B$}\\[1pt] on each training set\\ $T_k$, predict fold $F_k$};
+\node[box=cpipe, right=of fit] (diff) {\textbf{Loss differentials}\\[1pt] $d_i=\ell_A(i)-\ell_B(i)$\\ estimate $\hat\Delta=\bar d$};
+\draw[arr] (data) -- (block);
+\draw[arr] (block) -- (fit);
+\draw[arr] (fit) -- (diff);
+\begin{scope}[on background layer]
+  \node[lane=cpipe, fit=(data)(diff)] (L1) {};
+\end{scope}
+\node[lbl=cpipe] at (L1.north west) {1\quad Blocked cross-validation (defines the estimand $\Delta_n$)};
+
+% ---------------- Stage 2: DA-HAC variance (right to left) ----------------
+\node[box=ctest, below=11mm of diff] (center) {\textbf{Fold-centring}\\[1pt] fold means $m_k$\\ $\tilde u_i=d_i-m_{k(i)}$};
+\node[box=ctest, left=of center] (vario) {\textbf{Variograms of $\tilde u$}\\[1pt] in space and in time\\ $\to$ ranges $\hat r_S,\hat r_T$};
+\node[box=ctest, left=of vario] (bw) {\textbf{Bandwidths}\\[1pt] $b_S=\kappa\hat r_S$, $b_T=\kappa\hat r_T$\\ product-Bartlett $w_{ij}$};
+\node[box=ctest, left=of bw] (vu) {\textbf{Test-sampling var.}\\[1pt] $\hat V_u=\frac{1}{n^2}\sum_{i,j}w_{ij}\tilde u_i\tilde u_j$\\ and per fold $\hat V_k$};
+\draw[arr] (diff) -- (center);
+\draw[arr] (center) -- (vario);
+\draw[arr] (vario) -- (bw);
+\draw[arr] (bw) -- (vu);
+
+\node[box=ctrain, below=of center] (fm) {\textbf{Between-fold}\\[1pt] variance of the\\ fold means: $s_m^2$};
+\node[box=ctrain, left=of fm, text width=63mm] (tau) {\textbf{Training variance} (method of moments)\\[1pt] $\hat\tau^2=\max\bigl\{0,\ s_m^2-K^{-1}\textstyle\sum_k\hat V_k\bigr\}$};
+\node[box=ctrain, left=of tau] (vt) {\textbf{Nadeau--Bengio}\\[1pt] $\zeta_K\hat\tau^2$\\ $\zeta_K=\tfrac1K+\tfrac1{K-1}$};
+\draw[arr] (center) -- (fm);
+\draw[arr] (fm) -- (tau);
+\draw[arr] (tau) -- (vt);
+\draw[arr, dashed] ([xshift=-3mm]vu.south east) -- node[midway, below left=-1pt, font=\scriptsize]{$\hat V_k$} ([xshift=6mm]tau.north west);
+
+\begin{scope}[on background layer]
+  \node[lane=ctest, fit=(center)(vu)(fm)(vt)] (L2) {};
+\end{scope}
+\node[lbl=ctest] at (L2.north west) {2\quad DA-HAC variance estimation};
+
+% ---------------- Stage 3: inference and diagnostics ----------------
+\node[box=cout, below=11mm of vt.south west, anchor=north west, text width=40mm] (v) {\textbf{Total variance}\\[1pt] $\hat V=\hat V_u+\zeta_K\hat\tau^2$};
+\node[box=cout, right=of v, text width=40mm] (df) {\textbf{Satterthwaite d.f.\ $\hat\nu$}\\[1pt] from $\hat n_{\mathrm{eff}}$, $\textstyle\prod_q 3L_q/(2b_q)$\\ and $K-1$};
+\node[box=cout, right=of df, text width=40mm] (out) {\textbf{Output}\\[1pt] $T=\hat\Delta/\sqrt{\hat V}\sim t_{\hat\nu}$: $p$-value, CI\\ diagnostics $\hat r$, $\hat n_{\mathrm{eff}}$, $b/L$};
+\draw[arr] (vt.south) -- (vt.south |- v.north);
+\draw[arr] (vu.west) -- ++(-5mm,0) |- (v.west);
+\draw[arr] (v) -- (df);
+\draw[arr] (df) -- (out);
+
+\begin{scope}[on background layer]
+  \node[lane=cout, fit=(v)(out)] (L3) {};
+\end{scope}
+\node[lbl=cout, anchor=south east] at (L3.north east) {3\quad Inference and diagnostics};
+\end{tikzpicture}
