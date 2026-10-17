@@ -16,4 +16,53 @@ so that $\Delta_n=-\delta$ exactly. The fold effects $\eta_k=\sigma_\eta(\sqrt{\
 
 \paragraph{Pilot.} The bandwidth multiplier $\kappa$ and the reference distribution were chosen in a pilot study with $300$ null replicates per level, run on random seeds disjoint from those of the main study. Rejection rates of DA-HAC varied by at most $2.7$ percentage points across $\kappa\in\{0.5,1,1.5,2\}$ at any level, with no systematic trend, and we retained $\kappa=1$. Capping the degrees of freedom by the kernel term of~\eqref{eq:df} reduced the rejection rate at the strong level from $17.7\%$ to $15.3\%$ without affecting the other levels by more than $1.4$ points, and was retained. The pilot results are included in the code repository.
 
-%%SIM1RESULTS%%
+\subsection{Results}
+
+\paragraph{Type I error.} Table~\ref{tab:exp1} and Fig.~\ref{fig:exp1size} report rejection rates under the null. Procedures that ignore dependence fail quickly: the i.i.d. bootstrap rejects a true null in $19\%$ of replicates under weak dependence and in $80\%$ under strong dependence, and the time-only DM--HAC test, which ignores correlation between sites, behaves almost as badly ($17\%$ and $70\%$). The two cluster procedures, block bootstrap and LMM, are much better but still drift upwards as the range of dependence approaches the block size ($15\%$ and $14\%$ at the moderate level, $27\%$ and $25\%$ at the strong level), because they treat neighbouring blocks as independent. Even without any spatial or temporal dependence they reject $9\%$ and $7\%$ of true nulls, as they do not account for the correlation of fold effects. The paired $t$-test on blocked fold means is the best conventional procedure, in line with Proposition~\ref{prop:pairedt}, since blocking removes most of the covariance between fold means; it nevertheless reaches $11\%$ at the moderate and $18\%$ at the strong level.
+
+DA-HAC has rejection rates of $4.8\%$, $7.2\%$, $9.9\%$ and $12.8\%$ at the four levels. It is the procedure closest to the nominal level without dependence and under moderate and strong dependence; under weak dependence the paired $t$-test ($6.7\%$) is marginally closer. Its ablation with a fixed bandwidth equal to the block size is slightly better at the weak and moderate levels ($5.6\%$ and $8.8\%$). That variant uses knowledge of a sensible block size, which the variogram calibration recovers from the data. DA-HAC is \emph{not} exactly calibrated under moderate and strong dependence. At the strong level the practical range ($12$ sites and $13$ time steps) equals the extent of the domain; the median estimated range ratio $b/L$ is $0.52$, the sample contains only a few effectively independent regions, and the estimated ranges are about half the true ones because the variogram cannot be estimated beyond the domain. In this regime no method we studied is reliable, and the range ratio is an informative warning (Section~\ref{sec:discussion}).
+
+\paragraph{Ablations.} Removing the training term $\zeta_K\hat\tau^2$ almost triples the rejection rate at the weak and moderate levels ($14\%$ and $24\%$ instead of $7\%$ and $10\%$): fold-centred kernel estimators miss the between-fold component of the variance, whose estimation is therefore essential. Replacing the Satterthwaite reference by a normal distribution adds up to $3$ percentage points, the largest increase being at the strong level.
+
+\paragraph{Coverage, width and power.} Coverage of the $95\%$ intervals over all replicates (null and alternatives, Table~\ref{tab:exp1}) mirrors the type I error: $95.4\%$, $92.6\%$, $89.7\%$ and $85.6\%$ for DA-HAC, against $79.7\%$, $43.0\%$ and $19.3\%$ for the i.i.d. bootstrap from the weak level on. The DA-HAC intervals are wider than those of the cluster procedures (Fig.~\ref{fig:exp1size}b), which is the price of validity: the narrow intervals of the i.i.d. bootstrap and DM--HAC do not widen with dependence at all. Raw rejection rates under the alternatives (Fig.~\ref{fig:exp1power}) are not comparable across procedures whose sizes differ by an order of magnitude; we therefore also report size-adjusted power, using as critical value the $5\%$ quantile of each procedure's null $p$-values (Table~\ref{tab:exp1power}). DA-HAC has about the same size-adjusted power as the paired $t$-test. Without dependence it is less powerful than the cluster procedures ($61\%$ against $81\%$ at $\delta=0.2$), because the training term is estimated from only $K-1=4$ degrees of freedom; under moderate dependence the cluster procedures retain more size-adjusted power, but this advantage cannot be realised in practice, since their nominal tests over-reject and their null distribution is unknown.
+
+\begin{table}[t]
+\caption{Experiment 1: rejection rate (\%) of a true null at $\alpha=0.05$ ($1000$ replicates per level) and coverage (\%) of the $95\%$ confidence interval (all $1900$ replicates per level). Bold: rejection rate outside the $95\%$ Monte Carlo band $[3.6,6.4]$ around $5\%$.}\label{tab:exp1}
+\centering\small
+\begin{tabular}{@{}lrrrrrrrr@{}}
+\toprule
+& \multicolumn{4}{c}{Type I error (\%)} & \multicolumn{4}{c}{Coverage (\%)}\\
+\cmidrule(lr){2-5}\cmidrule(l){6-9}
+Procedure & None & Weak & Mod. & Strong & None & Weak & Mod. & Strong\\
+\midrule
+\input{tables/exp1_size.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Experiment 1: size-adjusted power (\%) for true loss gaps $\delta\in\{0.1,0.2,0.4\}$ ($300$ replicates each). The critical value of each procedure is the $5\%$ quantile of its own null $p$-values; it is undefined (--) when more than $5\%$ of null bootstrap $p$-values equal the smallest attainable value.}\label{tab:exp1power}
+\centering\small
+\begin{tabular}{@{}lrrrrrrrrr@{}}
+\toprule
+& \multicolumn{3}{c}{No dependence} & \multicolumn{3}{c}{Moderate} & \multicolumn{3}{c}{Strong}\\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(l){8-10}
+Procedure & 0.1 & 0.2 & 0.4 & 0.1 & 0.2 & 0.4 & 0.1 & 0.2 & 0.4\\
+\midrule
+\input{tables/exp1_power.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/exp1_size.pdf}
+\caption{Experiment 1. (a) Rejection rate of a true null hypothesis (log scale); the dashed line is the nominal level and the grey band the $95\%$ Monte Carlo band. (b) Median width of the $95\%$ confidence interval under the null.}\label{fig:exp1size}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/exp1_power.pdf}
+\caption{Experiment 1. Raw rejection rate as a function of the true loss gap $\delta$ ($\delta=0$ is the null). High curves at $\delta=0$ indicate invalid tests, not power.}\label{fig:exp1power}
+\end{figure}
+

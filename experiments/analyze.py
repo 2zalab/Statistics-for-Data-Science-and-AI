@@ -108,9 +108,15 @@ def exp1_tables(df):
     for m in methods[:6]:
         cells = []
         for lvl in ["none", "moderate", "strong"]:
+            # size-adjusted: critical p-value = 5% quantile of the null p-values
+            # (undefined when more than 5% of null p-values sit at the smallest
+            # attainable bootstrap p-value)
+            p0 = null[(null.level == lvl) & (null.method == m)].pvalue
+            crit = np.quantile(p0, ALPHA)
+            ties = (p0 <= p0.min()).mean() > ALPHA
             for dl in sorted(alt.delta.unique()):
                 sub = alt[(alt.level == lvl) & (alt.method == m) & (alt.delta == dl)]
-                cells.append(f"{100 * sub.reject.mean():.1f}")
+                cells.append("--" if ties else f"{100 * (sub.pvalue <= crit).mean():.0f}")
         lines.append(f"{LABEL[m]} & " + " & ".join(cells) + r" \\")
     (TAB / "exp1_power.tex").write_text("\n".join(lines) + "\n")
     return n_rep, lo, hi
@@ -148,12 +154,14 @@ def exp1_figures(df, n_rep):
         c, mk = STYLE[m]
         ax.plot(x, widths, color=c, marker=mk, lw=2.2 if m == "da_hac" else 1.4)
     ax.set_yscale("log")
+    ax.set_yticks([0.2, 0.3, 0.5, 0.7, 1.0, 1.5], ["0.2", "0.3", "0.5", "0.7", "1.0", "1.5"])
+    ax.minorticks_off()
     ax.set_xticks(x, [l.capitalize() for l in LEVELS])
     ax.set_xlabel("Dependence level")
     ax.set_ylabel("Median 95% CI width")
     ax.set_title("(b) Interval width", loc="left", color=INK)
     h, l = axes[0].get_legend_handles_labels()
-    fig.legend(h, l, loc="lower center", ncol=6, bbox_to_anchor=(0.5, -0.08), fontsize=7.5,
+    fig.legend(h, l, loc="upper center", ncol=6, bbox_to_anchor=(0.5, 0.0), fontsize=7.5,
                handlelength=1.8, columnspacing=1.2)
     fig.savefig(FIG / "exp1_size.pdf")
     plt.close(fig)
@@ -167,11 +175,11 @@ def exp1_figures(df, n_rep):
             c, mk = STYLE[m]
             ax.plot(deltas, r, color=c, marker=mk, lw=2.2 if m == "da_hac" else 1.4, label=PLAIN[m])
         ax.axhline(ALPHA, color=MUTED, lw=0.8, ls="--")
-        ax.set_title(f"{lvl.capitalize()} dependence", loc="left", color=INK)
+        ax.set_title("No dependence" if lvl == "none" else f"{lvl.capitalize()} dependence", loc="left", color=INK)
         ax.set_xlabel("True loss gap $\\delta$")
     axes[0].set_ylabel("Rejection rate")
     h, l = axes[0].get_legend_handles_labels()
-    fig.legend(h, l, loc="lower center", ncol=6, bbox_to_anchor=(0.5, -0.12), fontsize=7.5)
+    fig.legend(h, l, loc="upper center", ncol=6, bbox_to_anchor=(0.5, 0.0), fontsize=7.5)
     fig.savefig(FIG / "exp1_power.pdf")
     plt.close(fig)
 
@@ -230,7 +238,7 @@ def exp2_tables_figures(df):
             if l not in labels:
                 handles.append(h)
                 labels.append(l)
-    fig.legend(handles, labels, loc="lower center", ncol=7, bbox_to_anchor=(0.5, -0.08), fontsize=7.2,
+    fig.legend(handles, labels, loc="upper center", ncol=5, bbox_to_anchor=(0.5, 0.0), fontsize=7.2,
                columnspacing=1.0, handlelength=1.6)
     fig.savefig(FIG / "exp2_size.pdf")
     plt.close(fig)
