@@ -237,7 +237,7 @@ def da_hac(d, folds, coords_space=None, times=None, alpha=0.05, kappa=1.0,
 
     ``info['range_ratio']`` (largest bandwidth relative to the extent of the
     domain along its axis) flags designs in which the dependence range is
-    comparable to the domain; values above about 0.3 indicate that no
+    comparable to the domain; values above about 0.25 indicate that no
     procedure can be well calibrated from a single sample.
 
     ``variants``, a list of ``(name, training_term, reference)``, returns one
