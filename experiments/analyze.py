@@ -444,7 +444,7 @@ def exp3_tables_figures():
 def choose_threshold(null_dahac):
     """Largest range-ratio threshold whose conditional size stays in the MC band."""
     best = None
-    for r in np.round(np.arange(0.10, 0.601, 0.025), 3):
+    for r in np.round(np.arange(0.10, 1.001, 0.025), 3):
         det = null_dahac[null_dahac.info_range_ratio <= r]
         if len(det) < 100:
             continue
@@ -509,7 +509,11 @@ def exp1b_tables(df1=None, df2=None):
     fp, fm = RES / "exp1b_range_pilot.csv", RES / "exp1b_range.csv"
     if fp.exists() and fm.exists():
         pilot = add_flags(pd.read_csv(fp))
-        rstar = choose_threshold(pilot[(pilot.method == "da_p")])
+        calib = [pilot[pilot.method == "da_p"]]
+        if df2 is not None:  # even replicates of Experiment 2 are used for calibration, odd ones for validation
+            b = df2[(df2.scheme == "blocked") & (df2.gamma == 0) & (df2.method == "da_p")]
+            calib.append(b[b.rep % 2 == 0])
+        rstar = choose_threshold(pd.concat(calib, ignore_index=True))
         out["rstar"] = rstar
         RSTAR[0] = rstar
         (TAB / "rstar.tex").write_text(f"\\renewcommand{{\\rstar}}{{{rstar:g}}}\n")
@@ -524,8 +528,8 @@ def exp1b_tables(df1=None, df2=None):
             lines += [r"\multicolumn{6}{@{}l}{\emph{Experiment 1 (alternative: $\delta=0.2$)}}\\"]
             lines += rule_rows(n1, df1[df1.delta == 0.2], "level", str.capitalize, rstar)
         if df2 is not None:
-            b = df2[df2.scheme == "blocked"]
-            lines += [r"\multicolumn{6}{@{}l}{\emph{Experiment 2 (alternative: $\gamma=0.2$)}}\\"]
+            b = df2[(df2.scheme == "blocked") & (df2.rep % 2 == 1)]
+            lines += [r"\multicolumn{6}{@{}l}{\emph{Experiment 2, odd replicates (alternative: $\gamma=0.2$)}}\\"]
             lines += rule_rows(b[b.gamma == 0], b[b.gamma == 0.2], "level", str.capitalize, rstar)
         (TAB / "rule_validation.tex").write_text("\n".join(lines) + "\n")
 

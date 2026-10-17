@@ -12,22 +12,22 @@ d_i=(\varepsilon_i-e_{A,i})^2-(\varepsilon_i-\sqrt{1+\delta}\,e_{B,i})^2+\eta_{k
 \]
 so that $\Delta_n=-\delta$ exactly. The fold effects $\eta_k=\sigma_\eta(\sqrt{\rho}\,g+\sqrt{1-\rho}\,h_k)$, with $g,h_1,\dots,h_K$ i.i.d. standard normal, $\sigma_\eta=0.05$ and $\rho=0.25$, mimic the training-induced variability of~\eqref{eq:model}, including its correlation across folds. We use $\delta=0$ (null) and $\delta\in\{0.1,0.2,0.4\}$ (alternatives).
 
-\paragraph{Validation and procedures.} The domain is cut into $4\times4$-site tiles crossed with $6$-step time windows ($G=36$ blocks), which are allocated to $K=5$ folds with balanced sizes. We compare the paired $t$-test on fold means, the i.i.d. bootstrap, the block bootstrap and a random-intercept LMM (both with the $36$ blocks as clusters), the Diebold--Mariano test with a site-wise Newey--West variance (DM--HAC), and DA-HAC. Three ablations of DA-HAC are included: without the training term ($\hat\tau^2=0$), with a normal reference distribution, and with a fixed bandwidth equal to the block size instead of the variogram-calibrated one. Bootstraps use $999$ resamples. There are $1000$ replicates per dependence level under the null and $300$ under each alternative, so that the Monte Carlo standard error of a rejection rate of $5\%$ is $0.7$ percentage points.
+\paragraph{Validation and procedures.} The domain is cut into $4\times4$-site tiles crossed with $6$-step time windows ($G=36$ blocks), which are allocated to $K=5$ folds with balanced sizes. We compare the paired $t$-test on fold means, the i.i.d. bootstrap, the block bootstrap and a random-intercept LMM (both with the $36$ blocks as clusters), the Diebold--Mariano test with a site-wise Newey--West variance (DM--HAC), the space--time Hering--Genton test, the kernel variant DA-K and the proposed DA-P. Ablations of DA-P remove the training term or replace the Satterthwaite reference by a normal distribution; a kernel estimator with a fixed bandwidth equal to the block size is also included. Bootstraps use $999$ resamples. There are $1000$ replicates per dependence level under the null and $300$ under each alternative, so that the Monte Carlo standard error of a rejection rate of $5\%$ is $0.7$ percentage points.
 
-\paragraph{Pilot.} The bandwidth multiplier $\kappa$ and the reference distribution were chosen in a pilot study with $300$ null replicates per level, run on random seeds disjoint from those of the main study. Rejection rates of DA-HAC varied by at most $2.7$ percentage points across $\kappa\in\{0.5,1,1.5,2\}$ at any level, with no systematic trend, and we retained $\kappa=1$. Capping the degrees of freedom by the kernel term of~\eqref{eq:df} reduced the rejection rate at the strong level from $17.7\%$ to $15.3\%$ without affecting the other levels by more than $1.4$ points, and was retained. The pilot results are included in the code repository.
+\paragraph{Pilot studies and choice of the variance estimator.} All design choices were made in pilot studies on random seeds disjoint from those of the main studies, whose scripts and outputs are included in the code repository. Our initial proposal was the kernel estimator DA-K, with bandwidths equal to the estimated practical ranges (multipliers between $0.5$ and $2$ changed rejection rates by at most $2.7$ points). The pilot revealed that its residual over-rejection under moderate and strong dependence came almost entirely from replicates in which $\hat\tau^2$ was truncated at zero: without the compensation provided by $\hat\tau^2$, the downward bias of the fold-centred kernel estimate (Proposition~\ref{prop:bias}) was no longer offset. Replacing the kernel by the fitted correlation model removed this problem in pilot versions of both simulation studies, with maximum pilot rejection rates of $4.0\%$ in Experiment~1 and $9.2\%$ in Experiment~2, against $16.3\%$ and $14.2\%$ for DA-K; DA-P was therefore adopted before the main studies were run.
 
 \subsection{Results}
 
-\paragraph{Type I error.} Table~\ref{tab:exp1} and Fig.~\ref{fig:exp1size} report rejection rates under the null. Procedures that ignore dependence fail quickly: the i.i.d. bootstrap rejects a true null in $19\%$ of replicates under weak dependence and in $80\%$ under strong dependence, and the time-only DM--HAC test, which ignores correlation between sites, behaves almost as badly ($17\%$ and $70\%$). The two cluster procedures, block bootstrap and LMM, are much better but still drift upwards as the range of dependence approaches the block size ($15\%$ and $14\%$ at the moderate level, $27\%$ and $25\%$ at the strong level), because they treat neighbouring blocks as independent. Even without any spatial or temporal dependence they reject $9\%$ and $7\%$ of true nulls, as they do not account for the correlation of fold effects. The paired $t$-test on blocked fold means is the best conventional procedure, in line with Proposition~\ref{prop:pairedt}, since blocking removes most of the covariance between fold means; it nevertheless reaches $11\%$ at the moderate and $18\%$ at the strong level.
+\paragraph{Type I error.} Table~\ref{tab:exp1} and Fig.~\ref{fig:exp1size} report rejection rates under the null. Procedures that ignore dependence fail quickly: the i.i.d. bootstrap rejects a true null in $19\%$ of replicates under weak dependence and in $80\%$ under strong dependence, and the time-only DM--HAC test, which ignores correlation between sites, behaves almost as badly ($17\%$ and $70\%$). The two cluster procedures, block bootstrap and LMM, drift upwards as the range of dependence approaches the block size ($15\%$ and $14\%$ at the moderate level, $27\%$ and $25\%$ at the strong level), because they treat neighbouring blocks as independent, and they reject $9\%$ and $7\%$ of true nulls even without dependence, as they ignore the correlation of fold effects. The paired $t$-test on blocked fold means, the best conventional procedure in line with Proposition~\ref{prop:pairedt}, reaches $11\%$ at the moderate and $18\%$ at the strong level, and the kernel variant DA-K $10\%$ and $13\%$.
 
-DA-HAC has rejection rates of $4.8\%$, $7.2\%$, $9.9\%$ and $12.8\%$ at the four levels. It is the procedure closest to the nominal level without dependence and under moderate and strong dependence; under weak dependence the paired $t$-test ($6.7\%$) is marginally closer. Its ablation with a fixed bandwidth equal to the block size is slightly better at the weak and moderate levels ($5.6\%$ and $8.8\%$). That variant uses knowledge of a sensible block size, which the variogram calibration recovers from the data. DA-HAC is \emph{not} exactly calibrated under moderate and strong dependence. At the strong level the practical range ($12$ sites and $13$ time steps) equals the extent of the domain; the median estimated range ratio $b/L$ is $0.52$, the sample contains only a few effectively independent regions, and the estimated ranges are about half the true ones because the variogram cannot be estimated beyond the domain. In this regime no method we studied is reliable, and the range ratio is an informative warning (Section~\ref{sec:discussion}).
+DA-P keeps the rejection rate at or below the nominal level at every dependence level ($3.1\%$, $4.2\%$, $3.4\%$ and $2.4\%$); it is slightly conservative, most at the strong level, where the practical range is as long as the domain and the variance is inflated by the small number of independent regions. The space--time Hering--Genton test, whose exponential model is correctly specified in this design, is also valid ($4.4\%$, $5.5\%$, $4.4\%$, $2.6\%$). Removing the training term from DA-P increases its rejection rate by $1$--$2$ points, with a maximum of $5.7\%$; in this design the training variance is small ($\sigma_\eta=0.05$), and its role is examined in Section~\ref{sec:sim1rho} and in Experiment~2.
 
-\paragraph{Ablations.} Removing the training term $\zeta_K\hat\tau^2$ almost triples the rejection rate at the weak and moderate levels ($14\%$ and $24\%$ instead of $7\%$ and $10\%$): fold-centred kernel estimators miss the between-fold component of the variance, whose estimation is therefore essential. Replacing the Satterthwaite reference by a normal distribution adds up to $3$ percentage points, the largest increase being at the strong level.
+\paragraph{Boundary case $\hat\tau^2=0$.} Table~\ref{tab:boundary} reports the rejection rate of DA-P according to whether the training variance was truncated at zero. Truncation is frequent ($63$--$76\%$ of replicates), because the training effects are small compared with the test-sampling variability of fold means; the rejection rate in truncated replicates ($2.5$--$6.1\%$) remains close to the nominal level, and that in the other replicates is low. The large degrees of freedom obtained after truncation therefore do not cause over-rejection here; in DA-K, by contrast, truncated replicates accounted for nearly all false positives (see the pilot paragraph above).
 
-\paragraph{Coverage, width and power.} Coverage of the $95\%$ intervals over all replicates (null and alternatives, Table~\ref{tab:exp1}) mirrors the type I error: $95.4\%$, $92.6\%$, $89.7\%$ and $85.6\%$ for DA-HAC, against $79.7\%$, $43.0\%$ and $19.3\%$ for the i.i.d. bootstrap from the weak level on. The DA-HAC intervals are wider than those of the cluster procedures (Fig.~\ref{fig:exp1size}b), which is the price of validity: the narrow intervals of the i.i.d. bootstrap and DM--HAC do not widen with dependence at all. Raw rejection rates under the alternatives (Fig.~\ref{fig:exp1power}) are not comparable across procedures whose sizes differ by an order of magnitude; we therefore also report size-adjusted power, using as critical value the $5\%$ quantile of each procedure's null $p$-values (Table~\ref{tab:exp1power}). DA-HAC has about the same size-adjusted power as the paired $t$-test. Without dependence it is less powerful than the cluster procedures ($61\%$ against $81\%$ at $\delta=0.2$), because the training term is estimated from only $K-1=4$ degrees of freedom; under moderate dependence the cluster procedures retain more size-adjusted power, but this advantage cannot be realised in practice, since their nominal tests over-reject and their null distribution is unknown.
+\paragraph{Coverage, width and power.} Figure~\ref{fig:exp1cov} reports the coverage of the $95\%$ intervals separately for each true gap $\delta$ and dependence level. DA-P covers the true $\Delta_n$ in $95$--$99\%$ of replicates in every cell, and Hering--Genton in $94$--$98\%$, whereas the i.i.d. bootstrap and DM--HAC fall to $17$--$32\%$ under strong dependence and the cluster procedures to $67$--$78\%$. The DA-P intervals are wider than those of the cluster procedures (Fig.~\ref{fig:exp1size}b), which is the price of validity. Raw rejection rates under the alternatives (Fig.~\ref{fig:exp1power}) are not comparable across procedures whose sizes differ by an order of magnitude; we therefore also report size-adjusted power, using as critical value the $5\%$ quantile of each procedure's null $p$-values (Table~\ref{tab:exp1power}). Under moderate dependence, DA-P, Hering--Genton and the block bootstrap have the same size-adjusted power ($46\%$ at $\delta=0.4$), above that of the paired $t$-test and DA-K ($29\%$); without dependence, DA-P ($56\%$ at $\delta=0.2$) is less efficient than the cluster procedures ($81\%$) and Hering--Genton ($63\%$), because its training term is estimated from $K-1=4$ degrees of freedom. Its slight conservativeness also lowers its raw power, for example $48\%$ against $63\%$ for Hering--Genton at $\delta=0.2$ without dependence.
 
 \begin{table}[t]
-\caption{Experiment 1: rejection rate (\%) of a true null at $\alpha=0.05$ ($1000$ replicates per level) and coverage (\%) of the $95\%$ confidence interval (all $1900$ replicates per level). Bold: rejection rate outside the $95\%$ Monte Carlo band $[3.6,6.4]$ around $5\%$.}\label{tab:exp1}
+\caption{Experiment 1: rejection rate (\%) of a true null at $\alpha=0.05$ ($1000$ replicates per level) and coverage (\%) of the $95\%$ confidence interval (all $1900$ replicates per level). Bold: rejection rate outside the $95\%$ Monte Carlo band $[3.6,6.4]$, above (anti-conservative) or below (conservative).}\label{tab:exp1}
 \centering\footnotesize\setlength{\tabcolsep}{3.5pt}
 \begin{tabular}{@{}lrrrrrrrr@{}}
 \toprule
@@ -36,6 +36,20 @@ DA-HAC has rejection rates of $4.8\%$, $7.2\%$, $9.9\%$ and $12.8\%$ at the four
 Procedure & None & Weak & Mod. & Strong & None & Weak & Mod. & Strong\\
 \midrule
 \tabinput{tables/exp1_size.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Experiment 1: rejection rate (\%) of DA-P under the null according to whether the training variance was truncated ($\hat\tau^2_{\mathrm{raw}}\le0$), and median Satterthwaite degrees of freedom.}\label{tab:boundary}
+\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+& & \multicolumn{2}{c}{Rejection rate (\%)} & \multicolumn{2}{c}{Median $\hat\nu$}\\
+\cmidrule(lr){3-4}\cmidrule(l){5-6}
+Dependence & Truncated (\%) & Truncated & Not truncated & Truncated & Not truncated\\
+\midrule
+\tabinput{tables/exp1_boundary.tex}
 \bottomrule
 \end{tabular}
 \end{table}
@@ -62,7 +76,48 @@ Procedure & 0.1 & 0.2 & 0.4 & 0.1 & 0.2 & 0.4 & 0.1 & 0.2 & 0.4\\
 
 \begin{figure}[t]
 \centering
+\includegraphics[width=\textwidth]{figures/exp1_coverage.pdf}
+\caption{Experiment 1. Coverage of the $95\%$ confidence intervals for each true loss gap $\delta$ and dependence level ($1000$ replicates at $\delta=0$, $300$ otherwise). Dashed line: nominal coverage.}\label{fig:exp1cov}
+\end{figure}
+
+\begin{figure}[t]
+\centering
 \includegraphics[width=\textwidth]{figures/exp1_power.pdf}
 \caption{Experiment 1. Raw rejection rate as a function of the true loss gap $\delta$ ($\delta=0$ is the null). High curves at $\delta=0$ indicate invalid tests, not power.}\label{fig:exp1power}
 \end{figure}
 
+\subsection{Sensitivity to the correlation of training effects}\label{sec:sim1rho}
+
+Proposition~\ref{prop:bias} shows that the variance is underestimated when the true correlation $\rho$ of fold effects exceeds the assumed value $\rho_0$. To quantify this, we increased the training variance to $\sigma_\eta=0.1$ and varied the true $\rho\in\{0,0.25,0.5,0.75\}$, without and with moderate dependence ($500$ null replicates each), and ran DA-P with $\rho_0\in\{0,1/K,0.5\}$ (Table~\ref{tab:rho}). Under moderate dependence, DA-P stays at or below $5.6\%$ whatever $\rho$ and $\rho_0$, because the test-sampling variance dominates. Without spatio-temporal dependence, where the training variance is a large part of the total, DA-P is valid for $\rho\le0.25$ but rejects $10\%$ of true nulls at $\rho=0.5$ and $15\%$ at $\rho=0.75$ with the default $\rho_0=1/K$; assuming $\rho_0=0.5$ only reduces these rates to $8\%$ and $13\%$. All other procedures are worse in these settings ($14$--$29\%$). The common component of the fold effects, $\sqrt\rho\,g$ in our design, shifts all folds together and is therefore indistinguishable from a genuine difference in a single cross-validation run, as predicted by the result of Bengio and Grandvalet~\cite{bengio2004}. Highly correlated training effects arise when the training sets of different folds are nearly identical, i.e.\ with many folds, or when the learners are unstable in a way that depends on the whole sample; repeated cross-validation with different block allocations would provide information on $\rho$ and is left for future work.
+
+\begin{table}[t]
+\caption{Sensitivity to the correlation of fold effects ($\sigma_\eta=0.1$): rejection rate (\%) of a true null ($500$ replicates per row) for the true correlation $\rho$ and the assumed correlation $\rho_0$ of DA-P (default $\rho_0=1/K=0.2$).}\label{tab:rho}
+\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}lrrrrrrrr@{}}
+\toprule
+Dependence & $\rho$ & Paired $t$ & Block bs & LMM & H--G & DA-P, $\rho_0=0$ & DA-P, $\rho_0=0.2$ & DA-P, $\rho_0=0.5$\\
+\midrule
+\tabinput{tables/exp1b_rho.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Robustness to misspecification}\label{sec:sim1robust}
+
+DA-P assumes a separable, isotropic, stationary exponential correlation for the loss differential. Table~\ref{tab:robust} reports its behaviour, at the moderate dependence level, when this model is wrong: geometric anisotropy with ranges in ratio $4{:}1$; a Gaussian covariance $\exp(-(h/a)^2)$, smoother than the exponential; heteroscedastic errors whose standard deviation varies by a factor of about $4.5$ across the domain; a non-stationary field whose range increases from $1.5$ to $12$ grid units from one side of the domain to the other; and $144$ sites placed uniformly at random instead of on a grid ($500$ null and $300$ alternative replicates with $\delta=0.2$ each). DA-P remains at or below the nominal level in every scenario ($0.8$--$4.6\%$), with coverage of $95$--$99\%$, as does Hering--Genton ($0.8$--$6.2\%$), whereas the paired $t$-test, the cluster procedures and DA-K over-reject in all of them ($7.6$--$19.6\%$). Misspecification costs power rather than validity: under the Gaussian covariance and heteroscedasticity, where the exponential model overstates the long-range correlation of the differentials, DA-P detects the gap in only $4\%$ of replicates, against $16\%$ for the (invalid) paired $t$-test.
+
+\begin{table}[t]
+\caption{Robustness at the moderate dependence level: rejection rate (\%) of a true null ($500$ replicates) for six procedures, and coverage (\%) and raw power (\%) of DA-P and raw power of the paired $t$-test at $\delta=0.2$ ($300$ replicates).}\label{tab:robust}
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrrrrrrrrr@{}}
+\toprule
+& \multicolumn{6}{c}{Type I error (\%)} & \multicolumn{2}{c}{DA-P, $\delta=0.2$} & Paired $t$\\
+\cmidrule(lr){2-7}\cmidrule(lr){8-9}\cmidrule(l){10-10}
+Scenario & Paired $t$ & Block bs & LMM & H--G & DA-K & DA-P & Cov. & Power & Power\\
+\midrule
+\tabinput{tables/exp1b_robust.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+%%RULESECTION%%

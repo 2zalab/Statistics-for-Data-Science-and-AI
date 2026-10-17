@@ -1,3 +1,4 @@
 7600 replicates in 2390s -> /home/user/statistics-for-data-science-and-ai/results/exp1.csv
 4000 replicates in 913s -> /home/user/statistics-for-data-science-and-ai/results/exp1b_rho.csv
 4800 replicates in 1211s -> /home/user/statistics-for-data-science-and-ai/results/exp1b_robust.csv
+2100 replicates in 699s -> /home/user/statistics-for-data-science-and-ai/results/exp1b_range_pilot.csv
