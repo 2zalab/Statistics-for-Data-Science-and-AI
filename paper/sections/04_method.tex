@@ -1,42 +1,45 @@
-\section{Dependence-aware HAC inference}\label{sec:method}
+\section{Dependence-aware inference}\label{sec:method}
 
-DA-HAC estimates the two components of~\eqref{eq:var} from the loss differentials of a single blocked cross-validation run. Figure~\ref{fig:architecture} gives an overview of the complete procedure: blocked cross-validation produces the loss differentials (stage~1); two parallel branches estimate the test-sampling variance, through variogram-calibrated kernel weights, and the training-induced variance, from the dispersion of fold means (stage~2); the two are combined into a variance, a reference distribution and diagnostics (stage~3). The steps are summarised in Algorithm~\ref{alg:dahac} and detailed below.
+The proposed procedure, which we call DA-P (\emph{dependence-aware, parametric}), estimates the two components of~\eqref{eq:var} from the loss differentials of a single blocked cross-validation run. Figure~\ref{fig:architecture} gives an overview: blocked cross-validation produces the loss differentials (stage~1); two parallel branches estimate the test-sampling variance, from a correlation model fitted to the variograms of the loss differentials, and the training-induced variance, from the dispersion of fold means (stage~2); the two are combined into a variance, a reference distribution, diagnostics and a three-way decision (stage~3). We also describe a kernel variant, DA-K, in which the test-sampling variance is a heteroskedasticity- and autocorrelation-consistent (HAC) estimate; it was our initial proposal and is retained as a point of comparison. The steps are summarised in Algorithm~\ref{alg:dahac} and detailed below.
 
 \begin{figure}[t]
 \centering
 \resizebox{\textwidth}{!}{\input{figures/architecture.tex}}
-\caption{Architecture of the proposed comparison procedure. Stage~1 (grey) is a standard blocked cross-validation that yields the per-observation loss differentials $d_i$ and defines the estimand. Stage~2 (DA-HAC) estimates the test-sampling variance $\hat V_u$ (blue branch, read from right to left: fold-centring, variograms, bandwidths, product-Bartlett kernel) and the training-induced variance $\zeta_K\hat\tau^2$ (orange branch). Stage~3 (green) combines them into the total variance, the Satterthwaite degrees of freedom and the test, together with the diagnostics used in Section~\ref{sec:discussion}.}\label{fig:architecture}
+\caption{Architecture of the proposed comparison procedure DA-P. Stage~1 (grey) is a standard blocked cross-validation that yields the per-observation loss differentials $d_i$ and defines the estimand. Stage~2 estimates the test-sampling variance $\hat V_u$ (blue branch, read from right to left: fold-centring, variograms, fitted correlation model, variance of the mean) and the training-induced variance $\zeta_K\hat\tau^2$ (orange branch). Stage~3 (green) combines them into the total variance, the Satterthwaite degrees of freedom and the test, and returns the diagnostics and the three-way decision of Section~\ref{sec:rule}.}\label{fig:architecture}
 \end{figure}
 
 \subsection{Fold-centred differentials}
 
 Let $m_k$ be the mean of the $d_i$ in fold $k$ and $\tilde u_i=d_i-m_{k(i)}$. Under~\eqref{eq:model}, $\tilde u_i=u_i-\bar u_{k(i)}$ is free of the fold effects, so that the dependence structure of $u$ can be studied without confusion with the training-induced component.
 
-\subsection{Variogram-calibrated bandwidths}
+\subsection{Variogram model of the loss differentials}
 
-The key tuning parameter of any HAC estimator is the bandwidth, i.e.\ the distance beyond which covariances are neglected. Rules of thumb developed for time series~\cite{newey1987,andrews1991} do not transfer to space, and the dependence range of the loss differential is in general different from that of the response: it is the range of the \emph{residual} structure that both models fail to capture. We therefore estimate it from $\tilde u$ directly. The directional empirical semivariograms
+The dependence range of the loss differential is in general different from that of the response: it is the range of the \emph{residual} structure that both models fail to capture. We therefore estimate it from $\tilde u$ directly. The directional empirical semivariograms
 \begin{align*}
 \hat\gamma_S(h)&=\frac{1}{2|N_S(h)|}\sum_{(i,j)\in N_S(h)}(\tilde u_i-\tilde u_j)^2,& N_S(h)&=\{(i,j):t_i=t_j,\ \|s_i-s_j\|\in I_h\},\\
 \hat\gamma_T(\ell)&=\frac{1}{2|N_T(\ell)|}\sum_{(i,j)\in N_T(\ell)}(\tilde u_i-\tilde u_j)^2,& N_T(\ell)&=\{(i,j):s_i=s_j,\ |t_i-t_j|\in I_\ell\},
 \end{align*}
-are computed over distance and lag bins $I_h$, $I_\ell$ up to a maximum lag (by default half the spatial extent and a quarter of the temporal extent). For purely spatial data, $N_S(h)$ uses all pairs. To each we fit the exponential model $\gamma(h)=c_0+c_1\{1-\exp(-h/a)\}$ by the weighted least squares of Cressie~\cite{cressie1985}, with weights $|N(h)|/\gamma(h)^2$. The \emph{practical range} $r=3a$ is the distance at which the correlation of the structured component falls to $5\%$; it is set to zero when the structured part explains less than $5\%$ of the sill ($c_1<0.05(c_0+c_1)$). The spatial and temporal bandwidths are
-\[
-b_S=\kappa\,\hat r_S,\qquad b_T=\kappa\,\hat r_T ,
-\]
-with $\kappa=1$ chosen in a pilot study on separate random seeds (Section~\ref{sec:sim1}). We also report the \emph{range ratio} $\max_q b_q/L_q$, the largest bandwidth relative to the extent of the domain along the same axis, as a diagnostic: when it approaches one, the sample contains only a handful of effectively independent regions, and no procedure can estimate the variance of $\hat\Delta$ reliably from it.
-
-\subsection{Kernel estimate of the test-sampling variance}
-
-We use the product-Bartlett kernel
-\begin{equation}\label{eq:kernel}
-w_{ij}=\prod_{q=1}^{p}\Bigl(1-\frac{|s_{iq}-s_{jq}|}{b_S}\Bigr)_+\Bigl(1-\frac{|t_i-t_j|}{b_T}\Bigr)_+ ,
+are computed over distance and lag bins $I_h$, $I_\ell$ up to a maximum lag (by default half the spatial extent and a quarter of the temporal extent). For purely spatial data, $N_S(h)$ uses all pairs. To each we fit the exponential model with nugget $\gamma(h)=c_0+c_1\{1-\exp(-h/a)\}$ by the weighted least squares of Cressie~\cite{cressie1985}, with weights $|N(h)|/\gamma(h)^2$. This yields the correlation functions
+\begin{equation}\label{eq:corr}
+\hat g_S(h)=\frac{\hat c_{1,S}}{\hat c_{0,S}+\hat c_{1,S}}\,e^{-h/\hat a_S}\ (h>0),\qquad
+\hat g_T(\ell)=\frac{\hat c_{1,T}}{\hat c_{0,T}+\hat c_{1,T}}\,e^{-\ell/\hat a_T}\ (\ell>0),
 \end{equation}
-where a zero bandwidth keeps only pairs with identical coordinates on that axis. Each factor is a one-dimensional Bartlett (triangular) kernel, whose Fourier transform is non-negative; the product is therefore a positive semi-definite kernel on $\mathbb{R}^{p+1}$, which guarantees non-negative variance estimates. (A Bartlett kernel applied to the Euclidean distance in two or more dimensions does not have this property.) The test-sampling variance and its within-fold analogues are
+with $\hat g_S(0)=\hat g_T(0)=1$, and the \emph{practical ranges} $\hat r=3\hat a$, the distances at which the correlation of the structured component falls to $5\%$ (set to zero when the structured part explains less than $5\%$ of the sill). The \emph{range ratio} $\max_q\hat r_q/L_q$, the largest practical range relative to the extent $L_q$ of the domain along the same axis, measures how many effectively independent regions the sample contains; it is the basis of the decision rule of Section~\ref{sec:rule}.
+
+\subsection{Test-sampling variance}
+
+\paragraph{DA-P (proposed).} The test-sampling variance and its within-fold analogues are computed from the fitted separable correlation $\hat g_{ij}=\hat g_S(\|s_i-s_j\|)\,\hat g_T(|t_i-t_j|)$:
 \begin{equation}\label{eq:vu}
-\hat V_u=\frac{1}{n^2}\sum_{i,j}w_{ij}\tilde u_i\tilde u_j,\qquad
-\hat V_k=\frac{1}{n_k^2}\sum_{i,j\in F_k}w_{ij}\tilde u_i\tilde u_j .
+\hat V_u=\frac{\hat\sigma^2}{n^2}\sum_{i,j}\hat g_{ij},\qquad
+\hat V_k=\frac{\hat\sigma^2}{n_k^2}\sum_{i,j\in F_k}\hat g_{ij},\qquad \hat\sigma^2=\frac1n\sum_i\tilde u_i^2 .
 \end{equation}
-Only pairs with $w_{ij}>0$ contribute; they are enumerated with a $k$-d tree in the Chebyshev metric after scaling each coordinate by its bandwidth, at a cost proportional to the number of such pairs.
+A product of exponential correlations with a nugget is positive definite, so $\hat V_u>0$. Pairs with $\hat g_{ij}<10^{-3}$ are neglected; the others are enumerated with a $k$-d tree, at a cost proportional to their number. Unlike a kernel estimator, \eqref{eq:vu} does not truncate the covariance at a bandwidth and does not multiply empirical cross-products, so it is neither biased downward by kernel down-weighting nor degenerate when the range approaches the fold size; its validity rests instead on the adequacy of the exponential model, which we examine under several misspecifications in Section~\ref{sec:sim1robust}. It is close in spirit to the spatial prediction comparison test of Hering and Genton~\cite{hering2011}, with two differences: the variogram is fitted to fold-centred differentials, and the training-induced component below is added.
+
+\paragraph{DA-K (kernel variant).} With bandwidths $b_S=\hat r_S$ and $b_T=\hat r_T$, the product-Bartlett kernel
+\begin{equation}\label{eq:kernel}
+w_{ij}=\prod_{q=1}^{p}\Bigl(1-\frac{|s_{iq}-s_{jq}|}{b_S}\Bigr)_+\Bigl(1-\frac{|t_i-t_j|}{b_T}\Bigr)_+
+\end{equation}
+gives the HAC estimates $\hat V_u=n^{-2}\sum_{i,j}w_{ij}\tilde u_i\tilde u_j$ and $\hat V_k=n_k^{-2}\sum_{i,j\in F_k}w_{ij}\tilde u_i\tilde u_j$. Each factor is a one-dimensional Bartlett kernel, whose Fourier transform is non-negative, so the product is positive semi-definite and $\hat V_u\ge0$ (a Bartlett kernel applied to the Euclidean distance in two or more dimensions does not have this property).
 
 \subsection{Training-induced variance}
 
@@ -55,7 +58,7 @@ Following Nadeau and Bengio~\cite{nadeau2003}, our default is the test fraction 
 
 \subsection{What the variance estimator targets}
 
-The following proposition makes explicit the conditions under which~\eqref{eq:vtotal} is unbiased, and the direction of its bias when they fail. We consider the untruncated estimator $\hat\tau^2_{\mathrm{raw}}=s_m^2-K^{-1}\sum_k\hat V_k$ and $\hat V_{\mathrm{raw}}=\hat V_u+\zeta_K(\rho_0)\hat\tau^2_{\mathrm{raw}}$.
+The following proposition makes explicit the conditions under which~\eqref{eq:vtotal} is unbiased, and the direction of its bias when they fail. For either estimator of the test-sampling variance, we consider the untruncated estimator $\hat\tau^2_{\mathrm{raw}}=s_m^2-K^{-1}\sum_k\hat V_k$ and $\hat V_{\mathrm{raw}}=\hat V_u+\zeta_K(\rho_0)\hat\tau^2_{\mathrm{raw}}$.
 
 \begin{proposition}\label{prop:bias}
 Under the working model~\eqref{eq:model} with equal fold sizes, let $\bar m^u_k$ be the fold means of $u$, $v_u=K^{-1}\sum_k\Var(\bar m^u_k)$, $c_u=[K(K-1)]^{-1}\sum_{k\neq l}\Cov(\bar m^u_k,\bar m^u_l)$, and let $\beta_u=\E[\hat V_u]-V_u$ and $\bar\beta=K^{-1}\sum_k\{\E[\hat V_k]-\Var(\bar m^u_k)\}$ be the biases of the kernel estimators. Then
@@ -71,56 +74,55 @@ In particular, $\hat V_{\mathrm{raw}}$ is unbiased if (i) $\rho_0=\rho$, (ii) fo
 The fold means are $m_k=\Delta_n+\eta_k+\bar m^u_k$ with $\eta$ independent of $u$, so their average variance is $\tau^2+v_u$ and their average covariance $\rho\tau^2+c_u$. By the identity in the proof of Proposition~\ref{prop:pairedt}, $\E[s_m^2]=(1-\rho)\tau^2+v_u-c_u$, and by definition $\E[K^{-1}\sum_k\hat V_k]=v_u+\bar\beta$, hence $\E[\hat\tau^2_{\mathrm{raw}}]=(1-\rho)\tau^2-c_u-\bar\beta$. With equal fold sizes, \eqref{eq:var} reads $\Var(\hat\Delta)=V_u+\tau^2[1/K+\rho(1-1/K)]$ and $\E[\hat V_u]=V_u+\beta_u$. Substituting gives~\eqref{eq:bias}. Writing $g(r)=1/K+r(1-1/K)$, the training part is $\tau^2[(1-\rho)g(\rho_0)/(1-\rho_0)-g(\rho)]$, which vanishes at $\rho=\rho_0$ and is strictly decreasing in $\rho$, with derivative $-\tau^2[g(\rho_0)/(1-\rho_0)+1-1/K]<0$.
 \end{proof}
 
-Proposition~\ref{prop:bias} separates three sources of error, each of which is evaluated empirically in Section~\ref{sec:sim1}. \emph{Training correlation.} For $K=5$ and $\rho_0=1/K$, the training part equals $\tau^2(0.25-1.25\rho)$: assuming $\rho_0=0.2$ when $\rho=0.5$ leaves $0.375\tau^2$ of the $0.6\tau^2$ training variance unaccounted for, whereas $\rho<\rho_0$ errs on the conservative side. The sensitivity of the test to this choice is reported in Section~\ref{sec:sim1rho}. \emph{Cross-fold covariance.} $c_u$ is the covariance between test-sampling fluctuations of different folds; it is reduced by allocating whole blocks to folds and by buffers, and vanishes when blocks are larger than the dependence range. Because it enters with a negative sign, residual cross-fold dependence makes the test anti-conservative. \emph{Kernel bias.} Fold-centring removes the fold-level average of $u$ from $\tilde u$, and the Bartlett kernel down-weights covariances near the bandwidth; both make $\beta_u$ and $\bar\beta$ negative when the dependence range is not small relative to the blocks and to the domain. The term $-\zeta_K\bar\beta$ partially offsets $\beta_u$: the part of the fold-level variance missed by the within-fold estimators is recovered by $\hat\tau^2$. Finally, truncation at zero, $\hat\tau^2=\max\{0,\hat\tau^2_{\mathrm{raw}}\}$, can only increase the variance, so $\E[\hat V]\ge\E[\hat V_{\mathrm{raw}}]$; its effect on the reference distribution is discussed next.
+Proposition~\ref{prop:bias} separates three sources of error, each of which is evaluated empirically in Section~\ref{sec:sim1}. \emph{Training correlation.} For $K=5$ and $\rho_0=1/K$, the training part equals $\tau^2(0.25-1.25\rho)$: assuming $\rho_0=0.2$ when $\rho=0.5$ leaves $0.375\tau^2$ of the $0.6\tau^2$ training variance unaccounted for, whereas $\rho<\rho_0$ errs on the conservative side. The sensitivity of the test to this choice is reported in Section~\ref{sec:sim1rho}. \emph{Cross-fold covariance.} $c_u$ is the covariance between test-sampling fluctuations of different folds; it is reduced by allocating whole blocks to folds and by buffers, and vanishes when blocks are larger than the dependence range. Because it enters with a negative sign, residual cross-fold dependence makes the test anti-conservative. \emph{Estimation bias of the test-sampling variance.} For DA-K, fold-centring removes the fold-level average of $u$ from $\tilde u$ and the Bartlett kernel down-weights covariances near the bandwidth; both make $\beta_u$ and $\bar\beta$ negative when the dependence range is not small relative to the blocks and to the domain. For DA-P, the biases come from the variogram fit (in particular from ranges that are too long to be estimated within the domain) and from misspecification of the exponential model. The term $-\zeta_K\bar\beta$ partially offsets $\beta_u$: the part of the fold-level variance missed by the within-fold estimators is recovered by $\hat\tau^2$. Finally, truncation at zero, $\hat\tau^2=\max\{0,\hat\tau^2_{\mathrm{raw}}\}$, can only increase the variance, so $\E[\hat V]\ge\E[\hat V_{\mathrm{raw}}]$; its effect on the reference distribution is discussed next.
 
 \subsection{Reference distribution}
 
 HAC tests are known to over-reject when the effective sample size is small~\cite{kiefer2005}, and $\hat\tau^2$ rests on only $K-1$ degrees of freedom. We approximate the distribution of $\hat V$ by a scaled $\chi^2$ with Welch--Satterthwaite~\cite{satterthwaite1946} degrees of freedom
 \begin{equation}\label{eq:df}
 \hat\nu=\frac{\hat V^2}{\hat V_u^2/\nu_u+(\zeta_K\hat\tau^2)^2/(K-1)},\qquad
-\nu_u=\min\Bigl\{\hat n_{\mathrm{eff}}-1,\ \prod_{q}\frac{3L_q}{2b_q}\Bigr\},
+\nu_u=\min\Bigl\{\hat n_{\mathrm{eff}}-1,\ \prod_{q}\frac{3L_q}{2\hat r_q}\Bigr\},
 \end{equation}
-with $\hat n_{\mathrm{eff}}=n^{-1}\sum_i\tilde u_i^2/\hat V_u$ truncated to $[2,n]$, where the product runs over the spatial and temporal axes with a positive bandwidth, and $L_q$ is the extent of the domain along axis $q$. The second term of $\nu_u$ is the classical approximation to the degrees of freedom of a kernel spectral estimate~\cite{andrews1991}: for a lag window $k$ of bandwidth $b$ on a record of length $L$, $\Var(\hat V)/V^2\approx2(b/L)\int k^2$, with $\int k^2=2/3$ for the Bartlett window, and the factors multiply for a product kernel. It caps the degrees of freedom when the bandwidth is not small compared with the domain, the regime in which HAC tests are most anti-conservative. The test statistic $T=\hat\Delta/\sqrt{\hat V}$ is referred to a Student $t_{\hat\nu}$ distribution, and the $(1-\alpha)$ confidence interval is $\hat\Delta\pm t_{\hat\nu,1-\alpha/2}\sqrt{\hat V}$.
+with $\hat n_{\mathrm{eff}}=n^{-1}\sum_i\tilde u_i^2/\hat V_u$ truncated to $[2,n]$, where the product runs over the spatial and temporal axes with a positive practical range, and $L_q$ is the extent of the domain along axis $q$. The second term of $\nu_u$ is the classical approximation to the degrees of freedom of a kernel spectral estimate~\cite{andrews1991} with a Bartlett window of width $\hat r_q$: for a lag window $k$ of bandwidth $b$ on a record of length $L$, $\Var(\hat V)/V^2\approx2(b/L)\int k^2$, with $\int k^2=2/3$, and the factors multiply across axes. It is used for both variants as an approximate count of the independent regions available to estimate the dependence, and caps the degrees of freedom when the range is not small compared with the domain. The test statistic $T=\hat\Delta/\sqrt{\hat V}$ is referred to a Student $t_{\hat\nu}$ distribution, and the $(1-\alpha)$ confidence interval is $\hat\Delta\pm t_{\hat\nu,1-\alpha/2}\sqrt{\hat V}$.
 
 When $\hat\tau^2_{\mathrm{raw}}\le0$ the training term vanishes and $\hat\nu=\nu_u$, which may be large even though only $K$ folds inform the training component. Truncation occurs when the observed dispersion of fold means is no larger than its predicted test-sampling part, that is, when the data show no evidence of a training effect; the variance itself is then not underestimated on average (Proposition~\ref{prop:bias}), but its sampling variability is understated. Section~\ref{sec:sim1} reports the rejection rate conditionally on truncation to check that this boundary case does not cause over-rejection.
 
 \subsection{A three-way decision rule}\label{sec:rule}
 
-Proposition~\ref{prop:bias} shows that no correction of the variance can be exact when the dependence range is comparable to the blocks and to the study domain: $c_u$, $\beta_u$ and $\bar\beta$ are then all non-negligible and are not identifiable from one sample. We therefore attach to DA-HAC an explicit decision rule with three outcomes:
+Proposition~\ref{prop:bias} shows that no correction of the variance can be exact when the dependence range is comparable to the blocks and to the study domain: $c_u$, $\beta_u$ and $\bar\beta$ are then all non-negligible and are not identifiable from one sample, and the variogram itself cannot be estimated beyond the extent of the domain. We therefore attach to DA-P (and DA-K) an explicit decision rule with three outcomes:
 \begin{equation}\label{eq:rule}
 \text{decision}=\begin{cases}
-\text{indeterminate} & \text{if } \max_q b_q/L_q>r^\ast,\\
-\text{reject } H_0 & \text{if } \max_q b_q/L_q\le r^\ast\text{ and } p<\alpha,\\
+\text{indeterminate} & \text{if } \max_q \hat r_q/L_q>r^\ast,\\
+\text{reject } H_0 & \text{if } \max_q \hat r_q/L_q\le r^\ast\text{ and } p<\alpha,\\
 \text{do not reject } H_0 & \text{otherwise,}
 \end{cases}
 \end{equation}
-where $b_q/L_q$ is the estimated bandwidth relative to the extent of the domain along axis $q$ (the range ratio). An ``indeterminate'' outcome states that the sample contains too few effectively independent regions for the comparison to be resolved, whatever the observed difference. The threshold $r^\ast=\rstar$ was chosen in a pilot study on separate random seeds as the largest value for which the conditional rejection rate of a true null stayed within the Monte Carlo band of the nominal level, and was then validated on new seeds and on the other experiments (Section~\ref{sec:sim1rule}).
+where $\hat r_q/L_q$ is the estimated practical range relative to the extent of the domain along axis $q$ (the range ratio). An ``indeterminate'' outcome states that the sample contains too few effectively independent regions for the comparison to be resolved, whatever the observed difference. The threshold $r^\ast=\rstar$ was chosen in a pilot study on separate random seeds as the largest value for which the conditional rejection rate of a true null stayed within the Monte Carlo band of the nominal level, and was then validated on new seeds and on the other experiments (Section~\ref{sec:sim1rule}).
 
 \begin{algorithm}[t]
-\caption{DA-HAC test for $H_0:\Delta_n=0$}\label{alg:dahac}
+\caption{DA-P test for $H_0:\Delta_n=0$}\label{alg:dahac}
 \begin{algorithmic}[1]
-\Require loss differentials $d_i$, folds $k(i)$, coordinates $(s_i,t_i)$, level $\alpha$, multiplier $\kappa$ (default 1)
+\Require loss differentials $d_i$, folds $k(i)$, coordinates $(s_i,t_i)$, level $\alpha$, threshold $r^\ast$
 \State $m_k\gets$ mean of $d_i$ over $F_k$; \ $\tilde u_i\gets d_i-m_{k(i)}$; \ $\hat\Delta\gets n^{-1}\sum_i d_i$
-\State Fit exponential models to the spatial and temporal empirical variograms of $\tilde u$; \ $b_S\gets\kappa\hat r_S$, $b_T\gets\kappa\hat r_T$
-\State Enumerate pairs with $w_{ij}>0$ under the product-Bartlett kernel~\eqref{eq:kernel}
-\State Compute $\hat V_u$ and $\hat V_1,\dots,\hat V_K$ by~\eqref{eq:vu}
+\State Fit exponential models to the spatial and temporal empirical variograms of $\tilde u$; correlations $\hat g_S,\hat g_T$ and ranges $\hat r_S,\hat r_T$
+\State Compute $\hat V_u$ and $\hat V_1,\dots,\hat V_K$ by~\eqref{eq:vu} \Comment{DA-K: kernel~\eqref{eq:kernel} instead}
 \State $\hat\tau^2\gets\max\{0,s_m^2-K^{-1}\sum_k\hat V_k\}$; \ $\hat V\gets\hat V_u+\zeta_K(\rho_0)\hat\tau^2$ \Comment{default $\rho_0=1/K$}
-\State Compute $\hat n_{\mathrm{eff}}$, $\nu_u$ and $\hat\nu$ by~\eqref{eq:df}, and the range ratio $\max_q b_q/L_q$
+\State Compute $\hat n_{\mathrm{eff}}$, $\nu_u$ and $\hat\nu$ by~\eqref{eq:df}, and the range ratio $\max_q\hat r_q/L_q$
 \State $p\gets2\,\Pr(t_{\hat\nu}>|\hat\Delta|/\sqrt{\hat V})$; interval $\hat\Delta\pm t_{\hat\nu,1-\alpha/2}\sqrt{\hat V}$
-\State \Return $p$, the interval, the diagnostics and the decision~\eqref{eq:rule}: indeterminate if $\max_q b_q/L_q>r^\ast$
+\State \Return $p$, the interval, the diagnostics and the decision~\eqref{eq:rule}: indeterminate if $\max_q\hat r_q/L_q>r^\ast$
 \end{algorithmic}
 \end{algorithm}
 
 \subsection{Properties}
 
 \begin{remark}[Special cases]
-If $b_S=b_T=0$ and $\hat\tau^2=0$, then $\hat V=n^{-2}\sum_i\tilde u_i^2$ and DA-HAC reduces to the one-sample $t$-test on the $d_i$. If the data have no spatial (or no temporal) coordinate, the corresponding factor of~\eqref{eq:kernel} is omitted. Because the kernel is positive semi-definite, $\hat V\ge0$ always.
+If the fitted variograms show no structure ($\hat c_1=0$ in both directions) and $\hat\tau^2=0$, then $\hat V=n^{-2}\sum_i\tilde u_i^2$ and DA-P reduces to the one-sample $t$-test on the $d_i$; the same holds for DA-K with zero bandwidths. If the data have no spatial (or no temporal) coordinate, the corresponding factor of $\hat g_{ij}$ or of~\eqref{eq:kernel} is omitted. Both variance estimates are non-negative.
 \end{remark}
 
 \begin{remark}[Consistency]
-For fixed bandwidths, $\hat V_u$ is a Conley-type spatial HAC estimator~\cite{conley1999}. Under increasing-domain asymptotics with mixing conditions and bandwidths that grow with, but more slowly than, the size of the domain, such estimators are consistent~\cite{conley1999,andrews1991}. Our bandwidths are data-dependent and our variance includes a component, $\hat\tau^2$, estimated from only $K$ folds; we therefore do not claim exact asymptotic validity, and instead evaluate the finite-sample behaviour of the whole procedure by simulation with known truth.
+Under increasing-domain asymptotics, the DA-P variance is consistent when the exponential model is correctly specified and its parameters are consistently estimated~\cite{cressie1993}, and the DA-K variance is a Conley-type HAC estimator~\cite{conley1999}, consistent under mixing conditions when the bandwidths grow with, but more slowly than, the size of the domain~\cite{andrews1991}. Our variogram parameters are data-dependent and our variance includes a component, $\hat\tau^2$, estimated from only $K$ folds; we therefore do not claim exact asymptotic validity, and instead evaluate the finite-sample behaviour of the whole procedure by simulation with known truth.
 \end{remark}
 
 \begin{remark}[Scope]
-DA-HAC requires only the per-observation losses of the two models and their coordinates; it is agnostic to the learners, to the loss and to the blocking scheme. The same construction applies to any additive performance measure (squared error, absolute error, log loss, Brier score, 0--1 loss). Non-additive measures such as the AUC or the F1-score would require a linearisation (influence function) first.
+DA-P requires only the per-observation losses of the two models and their coordinates; it is agnostic to the learners, to the loss and to the blocking scheme. The same construction applies to any additive performance measure (squared error, absolute error, log loss, Brier score, 0--1 loss). Non-additive measures such as the AUC or the F1-score would require a linearisation (influence function) first.
 \end{remark}

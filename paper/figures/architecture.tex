@@ -29,11 +29,11 @@
 \end{scope}
 \node[lbl=cpipe] at (L1.north west) {1\quad Blocked cross-validation (defines the estimand $\Delta_n$)};
 
-% ---------------- Stage 2: DA-HAC variance (right to left) ----------------
+% ---------------- Stage 2: DA-P variance (right to left) ----------------
 \node[box=ctest, below=11mm of diff] (center) {\textbf{Fold-centring}\\[1pt] fold means $m_k$\\ $\tilde u_i=d_i-m_{k(i)}$};
 \node[box=ctest, left=of center] (vario) {\textbf{Variograms of $\tilde u$}\\[1pt] in space and in time\\ $\to$ ranges $\hat r_S,\hat r_T$};
-\node[box=ctest, left=of vario] (bw) {\textbf{Bandwidths}\\[1pt] $b_S=\kappa\hat r_S$, $b_T=\kappa\hat r_T$\\ product-Bartlett $w_{ij}$};
-\node[box=ctest, left=of bw] (vu) {\textbf{Test-sampling var.}\\[1pt] $\hat V_u=\frac{1}{n^2}\sum_{i,j}w_{ij}\tilde u_i\tilde u_j$\\ and per fold $\hat V_k$};
+\node[box=ctest, left=of vario] (bw) {\textbf{Correlation model}\\[1pt] exponential + nugget\\ $\hat g_{ij}=\hat g_S(h_{ij})\,\hat g_T(\ell_{ij})$};
+\node[box=ctest, left=of bw] (vu) {\textbf{Test-sampling var.}\\[1pt] $\hat V_u=\frac{\hat\sigma^2}{n^2}\sum_{i,j}\hat g_{ij}$\\ and per fold $\hat V_k$};
 \draw[arr] (diff) -- (center);
 \draw[arr] (center) -- (vario);
 \draw[arr] (vario) -- (bw);
@@ -50,12 +50,12 @@
 \begin{scope}[on background layer]
   \node[lane=ctest, fit=(center)(vu)(fm)(vt)] (L2) {};
 \end{scope}
-\node[lbl=ctest] at (L2.north west) {2\quad DA-HAC variance estimation};
+\node[lbl=ctest] at (L2.north west) {2\quad DA-P variance estimation};
 
 % ---------------- Stage 3: inference and diagnostics ----------------
 \node[box=cout, below=11mm of vt.south west, anchor=north west, text width=40mm] (v) {\textbf{Total variance}\\[1pt] $\hat V=\hat V_u+\zeta_K\hat\tau^2$};
-\node[box=cout, right=of v, text width=40mm] (df) {\textbf{Satterthwaite d.f.\ $\hat\nu$}\\[1pt] from $\hat n_{\mathrm{eff}}$, $\textstyle\prod_q 3L_q/(2b_q)$\\ and $K-1$};
-\node[box=cout, right=of df, text width=40mm] (out) {\textbf{Output}\\[1pt] $T=\hat\Delta/\sqrt{\hat V}\sim t_{\hat\nu}$: $p$-value, CI\\ diagnostics $\hat r$, $\hat n_{\mathrm{eff}}$, $b/L$};
+\node[box=cout, right=of v, text width=40mm] (df) {\textbf{Satterthwaite d.f.\ $\hat\nu$}\\[1pt] from $\hat n_{\mathrm{eff}}$, $\textstyle\prod_q 3L_q/(2\hat r_q)$\\ and $K-1$; range ratio $\hat r/L$};
+\node[box=cout, right=of df, text width=40mm] (out) {\textbf{Output}\\[1pt] $T=\hat\Delta/\sqrt{\hat V}\sim t_{\hat\nu}$: $p$-value, CI\\ decision: reject / not / indet.};
 \draw[arr] (vt.south) -- (vt.south |- v.north);
 \draw[arr] (vu.west) -- ++(-5mm,0) |- (v.west);
 \draw[arr] (v) -- (df);

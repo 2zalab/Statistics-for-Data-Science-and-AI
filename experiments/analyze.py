@@ -26,13 +26,14 @@ LABEL = {
     "block_bootstrap": "Block bootstrap",
     "mixed_model": "Mixed model",
     "dm_hac": "DM--HAC (time only)",
-    "da_hac": "DA-HAC (proposed)",
-    "da_hac_no_tau": "DA-HAC without $\\hat\\tau^2$ term",
-    "da_hac_normal": "DA-HAC, normal reference",
+    "da_p": "DA-P (proposed)",
+    "da_hac": "DA-K (kernel variant)",
+    "da_p_no_tau": "DA-P without $\\hat\\tau^2$ term",
+    "da_p_normal": "DA-P, normal reference",
     "hac_block_bw": "HAC, block-size bandwidth",
     "hering_genton": "Hering--Genton (space--time)",
-    "da_hac_rho0": "DA-HAC, $\\rho_0=0$",
-    "da_hac_rho0.5": "DA-HAC, $\\rho_0=0.5$",
+    "da_p_rho0": "DA-P, $\\rho_0=0$",
+    "da_p_rho0.5": "DA-P, $\\rho_0=0.5$",
 }
 PLAIN = {k: v.replace("$t$", "t").replace("$\\hat\\tau^2$", "τ²").replace("--", "–")
          .replace("$\\rho_0=", "ρ₀=").replace("$", "") for k, v in LABEL.items()}
@@ -40,7 +41,7 @@ PLAIN = {k: v.replace("$t$", "t").replace("$\\hat\\tau^2$", "τ²").replace("--"
 # Reference categorical palette (dataviz skill, light mode), fixed slot order.
 SLOT = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"]
 STYLE = {  # colour follows the method everywhere; markers give a second encoding
-    "da_hac": (SLOT[0], "o"),
+    "da_p": (SLOT[0], "o"),
     "paired_t": (SLOT[1], "s"),
     "iid_bootstrap": (SLOT[2], "^"),
     "block_bootstrap": (SLOT[3], "D"),
@@ -50,7 +51,8 @@ STYLE = {  # colour follows the method everywhere; markers give a second encodin
     "hering_genton": (SLOT[7], "*"),
 }
 RSTAR = [0.25]  # updated by exp1b_tables once the pilot has been analysed
-MAIN = ["paired_t", "iid_bootstrap", "block_bootstrap", "mixed_model", "dm_hac", "hering_genton", "da_hac"]
+MAIN = ["paired_t", "iid_bootstrap", "block_bootstrap", "mixed_model", "dm_hac", "hering_genton", "da_p"]
+TABLE = MAIN[:-1] + ["da_hac", "da_p"]  # DA-K (kernel variant) appears in tables only
 INK, MUTED, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 
 plt.rcParams.update({
@@ -90,7 +92,7 @@ def add_flags(df):
 
 def exp1_tables(df):
     null = df[df.delta == 0]
-    methods = MAIN + ["da_hac_no_tau", "da_hac_normal", "hac_block_bw"]
+    methods = TABLE + ["da_p_no_tau", "da_p_normal", "hac_block_bw"]
     n_rep = null.groupby(["level", "method"]).size().min()
     band = 1.96 * np.sqrt(ALPHA * (1 - ALPHA) / n_rep)
     lo, hi = ALPHA - band, ALPHA + band
@@ -105,13 +107,13 @@ def exp1_tables(df):
             sub = df[(df.level == lvl) & (df.method == m)]
             cov.append(f"{100 * sub.covered.mean():.1f}")
         lines.append(f"{LABEL[m]} & " + " & ".join(cells) + " & " + " & ".join(cov) + r" \\")
-        if m == "da_hac":
+        if m == "da_p":
             lines.append(r"\midrule")
     (TAB / "exp1_size.tex").write_text("\n".join(lines) + "\n")
 
     alt = df[df.delta > 0]
     lines = []
-    for m in MAIN:
+    for m in TABLE:
         cells = []
         for lvl in ["none", "moderate", "strong"]:
             # size-adjusted: critical p-value = 5% quantile of the null p-values
@@ -136,8 +138,8 @@ def size_panel(ax, null, methods, title, n_rep):
     for m in methods:
         rates = [null[(null.level == l) & (null.method == m)].reject.mean() for l in LEVELS]
         c, mk = STYLE[m]
-        ax.plot(x, rates, color=c, marker=mk, label=PLAIN[m], zorder=3 if m == "da_hac" else 2,
-                lw=2.2 if m == "da_hac" else 1.4)
+        ax.plot(x, rates, color=c, marker=mk, label=PLAIN[m], zorder=3 if m == "da_p" else 2,
+                lw=2.2 if m == "da_p" else 1.4)
     ax.set_xticks(x, [l.capitalize() for l in LEVELS])
     ax.set_xlabel("Dependence level")
     ax.set_title(title, loc="left", color=INK)
@@ -158,7 +160,7 @@ def exp1_figures(df, n_rep):
     for m in methods:
         widths = [df[(df.level == l) & (df.method == m) & (df.delta == 0)].width.median() for l in LEVELS]
         c, mk = STYLE[m]
-        ax.plot(x, widths, color=c, marker=mk, lw=2.2 if m == "da_hac" else 1.4)
+        ax.plot(x, widths, color=c, marker=mk, lw=2.2 if m == "da_p" else 1.4)
     ax.set_yscale("log")
     ax.set_yticks([0.2, 0.3, 0.5, 0.7, 1.0, 1.5], ["0.2", "0.3", "0.5", "0.7", "1.0", "1.5"])
     ax.minorticks_off()
@@ -179,7 +181,7 @@ def exp1_figures(df, n_rep):
         for m in methods:
             r = [alt[(alt.level == lvl) & (alt.method == m) & (alt.delta == dl)].reject.mean() for dl in deltas]
             c, mk = STYLE[m]
-            ax.plot(deltas, r, color=c, marker=mk, lw=2.2 if m == "da_hac" else 1.4, label=PLAIN[m])
+            ax.plot(deltas, r, color=c, marker=mk, lw=2.2 if m == "da_p" else 1.4, label=PLAIN[m])
         ax.axhline(ALPHA, color=MUTED, lw=0.8, ls="--")
         ax.set_title("No dependence" if lvl == "none" else f"{lvl.capitalize()} dependence", loc="left", color=INK)
         ax.set_xlabel("True loss gap $\\delta$")
@@ -195,7 +197,7 @@ def exp1_figures(df, n_rep):
         for m in methods:
             cv = [df[(df.level == lvl) & (df.method == m) & (df.delta == dl)].covered.mean() for dl in deltas]
             c, mk = STYLE[m]
-            ax.plot(deltas, cv, color=c, marker=mk, lw=2.2 if m == "da_hac" else 1.4, label=PLAIN[m])
+            ax.plot(deltas, cv, color=c, marker=mk, lw=2.2 if m == "da_p" else 1.4, label=PLAIN[m])
         ax.axhline(1 - ALPHA, color=MUTED, lw=0.8, ls="--")
         ax.set_title("No dependence" if lvl == "none" else lvl.capitalize(), loc="left", color=INK)
         ax.set_xlabel("True loss gap $\\delta$")
@@ -209,7 +211,7 @@ def exp1_figures(df, n_rep):
     # Boundary case: truncation of the training variance at zero
     lines = []
     for lvl in LEVELS:
-        sub = null[null.method == "da_hac"]
+        sub = null[null.method == "da_p"]
         sub = sub[sub.level == lvl]
         if "info_tau2_raw" not in sub:
             break
@@ -231,7 +233,7 @@ def exp2_tables_figures(df):
     band = 1.96 * np.sqrt(ALPHA * (1 - ALPHA) / n_rep)
     lo, hi = ALPHA - band, ALPHA + band
     rows = [("random", m) for m in ["paired_t", "iid_bootstrap", "nadeau_bengio"]]
-    rows += [("blocked", m) for m in MAIN]
+    rows += [("blocked", m) for m in TABLE]
     gammas = sorted(df[df.gamma > 0].gamma.unique())
     lines = []
     for i, (sch, m) in enumerate(rows):
@@ -315,8 +317,8 @@ def exp3_tables_figures():
     order = [("random", "paired_t"), ("random", "iid_bootstrap"), ("random", "nadeau_bengio"),
              ("blocked", "paired_t"), ("blocked", "iid_bootstrap"), ("blocked", "block_bootstrap"),
              ("blocked", "mixed_model"), ("blocked", "dm_hac"), ("blocked", "hering_genton"),
-             ("blocked", "da_hac"), ("forward", "paired_t"), ("forward", "block_bootstrap"),
-             ("forward", "hering_genton"), ("forward", "da_hac")]
+             ("blocked", "da_hac"), ("blocked", "da_p"), ("forward", "paired_t"), ("forward", "block_bootstrap"),
+             ("forward", "hering_genton"), ("forward", "da_p")]
     df = df.reset_index(drop=True)
     lines = []
     for ds in DATASETS:
@@ -346,7 +348,7 @@ def exp3_tables_figures():
     for ds in DATASETS:
         for comp in COMPARISONS:
             for sch in ("blocked", "forward"):
-                r = df[(df.dataset == ds) & (df.comparison == comp) & (df.method == "da_hac") & (df.scheme == sch)]
+                r = df[(df.dataset == ds) & (df.comparison == comp) & (df.method == "da_p") & (df.scheme == sch)]
                 if r.empty:
                     continue
                 r = r.iloc[0]
@@ -360,8 +362,8 @@ def exp3_tables_figures():
 
     # Forest plot
     plot_order = [("random", "paired_t"), ("random", "nadeau_bengio"), ("blocked", "paired_t"),
-                  ("blocked", "block_bootstrap"), ("blocked", "hering_genton"), ("blocked", "da_hac"),
-                  ("forward", "da_hac")]
+                  ("blocked", "block_bootstrap"), ("blocked", "hering_genton"), ("blocked", "da_p"),
+                  ("forward", "da_p")]
     present = [d for d in DATASETS if not df[df.dataset == d].empty]
     fig, axes = plt.subplots(len(present), 3, figsize=(7.0, 1.7 * len(present) + 0.4), squeeze=False)
     for i, ds in enumerate(present):
@@ -403,7 +405,7 @@ def exp3_tables_figures():
         cells = []
         for sch, m in [("random", "paired_t"), ("random", "iid_bootstrap"), ("blocked", "paired_t"),
                        ("blocked", "iid_bootstrap"), ("blocked", "block_bootstrap"), ("blocked", "mixed_model"),
-                       ("blocked", "dm_hac"), ("blocked", "hering_genton"), ("blocked", "da_hac")]:
+                       ("blocked", "dm_hac"), ("blocked", "hering_genton"), ("blocked", "da_p")]:
             sub = s[(s.scheme == sch) & (s.method == m)]
             cells.append("--" if sub.empty else f"{100 * sub.reject.mean():.0f}")
         lines.append(f"{DATASETS[ds].split(' (')[0]} & " + " & ".join(cells) + r" \\")
@@ -456,14 +458,14 @@ def rule_rows(null, alt, group, label_fn, rstar):
     """Rejection rates of DA-HAC under the three-way rule, by group."""
     lines = []
     for g in null[group].unique():
-        n0 = null[(null[group] == g) & (null.method == "da_hac")]
+        n0 = null[(null[group] == g) & (null.method == "da_p")]
         det = n0.info_range_ratio <= rstar
         size_all = n0.reject.mean()
         size_det = n0[det].reject.mean() if det.any() else np.nan
         cells = [label_fn(g), f"{n0.info_range_ratio.median():.2f}", f"{100 * (~det).mean():.0f}",
                  f"{100 * size_all:.1f}", "--" if np.isnan(size_det) else f"{100 * size_det:.1f}"]
         if alt is not None:
-            a0 = alt[(alt[group] == g) & (alt.method == "da_hac")]
+            a0 = alt[(alt[group] == g) & (alt.method == "da_p")]
             deta = a0.info_range_ratio <= rstar
             cells.append(f"{100 * (a0.reject & deta).mean():.0f}" if len(a0) else "--")
         lines.append(" & ".join(cells) + r" \\")
@@ -477,7 +479,7 @@ def exp1b_tables(df1=None, df2=None):
         d = add_flags(pd.read_csv(f))
         d = d[d.delta == 0]
         methods = ["paired_t", "block_bootstrap", "mixed_model", "hering_genton",
-                   "da_hac_rho0", "da_hac", "da_hac_rho0.5"]
+                   "da_p_rho0", "da_p", "da_p_rho0.5"]
         lines = []
         for sc in d.scenario.unique():
             lvl, rho = sc.split("_rho")
@@ -491,13 +493,13 @@ def exp1b_tables(df1=None, df2=None):
         names = {"baseline": "Baseline (moderate)", "anisotropic": "Anisotropic (4:1)",
                  "gaussian_cov": "Gaussian covariance", "heteroscedastic": "Heteroscedastic",
                  "nonstationary": "Non-stationary range", "irregular_sites": "Irregular sites"}
-        methods = ["paired_t", "block_bootstrap", "mixed_model", "hering_genton", "da_hac"]
+        methods = ["paired_t", "block_bootstrap", "mixed_model", "hering_genton", "da_hac", "da_p"]
         lines = []
         for sc, nm in names.items():
             n0 = d[(d.scenario == sc) & (d.delta == 0)]
             a0 = d[(d.scenario == sc) & (d.delta > 0)]
             cells = [f"{100 * n0[n0.method == m].reject.mean():.1f}" for m in methods]
-            da = a0[a0.method == "da_hac"]
+            da = a0[a0.method == "da_p"]
             pt = a0[a0.method == "paired_t"]
             cells += [f"{100 * da.covered.mean():.1f}", f"{100 * da.reject.mean():.0f}",
                       f"{100 * pt.reject.mean():.0f}"]
@@ -507,7 +509,7 @@ def exp1b_tables(df1=None, df2=None):
     fp, fm = RES / "exp1b_range_pilot.csv", RES / "exp1b_range.csv"
     if fp.exists() and fm.exists():
         pilot = add_flags(pd.read_csv(fp))
-        rstar = choose_threshold(pilot[(pilot.method == "da_hac")])
+        rstar = choose_threshold(pilot[(pilot.method == "da_p")])
         out["rstar"] = rstar
         RSTAR[0] = rstar
         (TAB / "rstar.tex").write_text(f"\\renewcommand{{\\rstar}}{{{rstar:g}}}\n")
@@ -537,13 +539,13 @@ def exp1b_tables(df1=None, df2=None):
         for c in ("scenario", "level"):
             if c in allnull:
                 allnull[c] = allnull[c].fillna("")
-        dah = allnull[allnull.method == "da_hac"].copy()
+        dah = allnull[allnull.method == "da_p"].copy()
         keycols = ["src", "scenario", "level", "rep"]
         keycols = [c for c in keycols if c in allnull]
         rr = dah.set_index(keycols).info_range_ratio
         bins = [0, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.7]
         fig, ax = plt.subplots(figsize=(4.6, 2.6))
-        for m in ["paired_t", "block_bootstrap", "hering_genton", "da_hac"]:
+        for m in ["paired_t", "block_bootstrap", "hering_genton", "da_p"]:
             sub = allnull[allnull.method == m].set_index(keycols)
             sub = sub.assign(rr=rr.reindex(sub.index).values)
             sub["bin"] = pd.cut(sub.rr, bins)
@@ -551,7 +553,7 @@ def exp1b_tables(df1=None, df2=None):
             g = g[g["size"] >= 50]
             x = [iv.mid for iv in g.index]
             c, mk = STYLE[m]
-            ax.plot(x, g["mean"], color=c, marker=mk, lw=2.2 if m == "da_hac" else 1.4, label=PLAIN[m])
+            ax.plot(x, g["mean"], color=c, marker=mk, lw=2.2 if m == "da_p" else 1.4, label=PLAIN[m])
         ax.axhline(ALPHA, color=MUTED, lw=0.8, ls="--")
         ax.axvline(rstar, color=INK, lw=0.8, ls=":")
         ax.text(rstar, ax.get_ylim()[1] * 0.97, f" $r^*={rstar:g}$", va="top", fontsize=7.5, color=INK)

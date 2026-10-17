@@ -30,19 +30,24 @@ def blocked_cv_tests(d, folds, blocks, coords_space, times, sites, rng, alpha=0.
 
     _, f = np.unique(folds, return_inverse=True)
     u = d - (np.bincount(f, weights=d) / np.bincount(f))[f]
-    ranges = dependence_ranges(u, coords_space, times, max_lag_space, max_lag_time)[:2]
+    r_s, r_t, fits = dependence_ranges(u, coords_space, times, max_lag_space, max_lag_time)
+    ranges = (r_s, r_t)
+
+    # Proposed procedure (DA-P) and its variants, sharing one parametric variance computation
+    variants = [("da_p", True, "satterthwaite")]
+    if ablations:
+        variants += [("da_p_no_tau", False, "satterthwaite"), ("da_p_normal", True, "normal")]
+    variants += [(f"da_p_rho{r:g}", True, "satterthwaite", r) for r in rhos]
+    res += da_hac(d, folds, coords_space, times, alpha, ranges=ranges, fits=fits,
+                  estimator="parametric", variants=variants)
+
+    # Kernel (HAC) version DA-K, formerly the main procedure
     for kappa in kappas:
         name = "da_hac" if kappa == 1.0 else f"da_hac_k{kappa:g}"
-        variants = [(name, True, "satterthwaite")]
-        if ablations and kappa == 1.0:
-            variants += [("da_hac_no_tau", False, "satterthwaite"), ("da_hac_normal", True, "normal")]
-        if kappa == 1.0:
-            variants += [(f"da_hac_rho{r:g}", True, "satterthwaite", r) for r in rhos]
-        res += da_hac(d, folds, coords_space, times, alpha, kappa=kappa, ranges=ranges, variants=variants)
-    if ablations:
-        if fixed_bandwidth is not None:
-            res.append(da_hac(d, folds, coords_space, times, alpha, bandwidth=fixed_bandwidth,
-                              method="hac_block_bw"))
+        res.append(da_hac(d, folds, coords_space, times, alpha, kappa=kappa, ranges=ranges, method=name))
+    if ablations and fixed_bandwidth is not None:
+        res.append(da_hac(d, folds, coords_space, times, alpha, bandwidth=fixed_bandwidth,
+                          method="hac_block_bw"))
     for r in res:
         r.method += suffix
     return res

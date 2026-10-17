@@ -191,6 +191,64 @@ def hac_variance(u, coords_space=None, times=None, b_space=0.0, b_time=0.0, grou
     return total, (diag + 2 * off) / ng ** 2
 
 
+def parametric_variance(u, coords_space=None, times=None, fits=None, groups=None, cutoff=1e-3):
+    """Variance of mean(u) under a fitted separable exponential correlation.
+
+    ``fits`` holds exponential variogram fits per direction (as returned by
+    :func:`~dacomp.variogram.dependence_ranges`); the correlation between two
+    observations is ``g_S(h) g_T(l)`` with ``g(x) = c1/(c0+c1) exp(-x/a)`` for
+    ``x > 0`` and 1 at ``x = 0``. Correlations below ``cutoff`` are neglected.
+    Returns the overall variance and, if ``groups`` is given, the variance of
+    each group mean from within-group pairs only.
+    """
+    u = np.asarray(u, float)
+    n = len(u)
+    s2 = np.mean(u ** 2)
+    fits = fits or {}
+
+    def params(direction):
+        if direction not in fits:
+            return 0.0, 0.0
+        f = fits[direction][1]
+        sill = f["c0"] + f["c1"]
+        return (f["c1"] / sill if sill > 0 else 0.0), f["a"]
+
+    w_s, a_s = params("space")
+    w_t, a_t = params("time")
+    cut = np.log(1.0 / cutoff)
+    cols, scales = [], []
+    if coords_space is not None:
+        cs = np.asarray(coords_space, float).reshape(n, -1)
+        cols.append(cs)
+        scales += [cut * a_s if (w_s > 0 and a_s > 0) else 1e-9] * cs.shape[1]
+    if times is not None:
+        t = np.asarray(times, float)
+        cols.append(t[:, None])
+        scales.append(cut * a_t if (w_t > 0 and a_t > 0) else 1e-9)
+    pairs = np.empty((0, 2), int)
+    g = np.empty(0)
+    if cols:
+        z = np.hstack(cols) / np.array(scales)
+        pairs = cKDTree(z).query_pairs(r=1.0, p=np.inf, output_type="ndarray")
+        g = np.ones(len(pairs))
+        if len(pairs) and coords_space is not None:
+            h = np.linalg.norm(cs[pairs[:, 0]] - cs[pairs[:, 1]], axis=1)
+            g *= np.where(h > 0, w_s * np.exp(-h / max(a_s, 1e-12)), 1.0)
+        if len(pairs) and times is not None:
+            lag = np.abs(t[pairs[:, 0]] - t[pairs[:, 1]])
+            g *= np.where(lag > 0, w_t * np.exp(-lag / max(a_t, 1e-12)), 1.0)
+    total = s2 * (n + 2 * g.sum()) / n ** 2
+    if groups is None:
+        return total, None
+    _, gr = np.unique(groups, return_inverse=True)
+    ng = np.bincount(gr)
+    off = np.zeros(len(ng))
+    if len(pairs):
+        same = gr[pairs[:, 0]] == gr[pairs[:, 1]]
+        off = np.bincount(gr[pairs[same, 0]], weights=g[same], minlength=len(ng))
+    return total, s2 * (ng + 2 * off) / ng ** 2
+
+
 def dm_hac(d, sites, times, alpha=0.05, lag=None, method="dm_hac"):
     """Diebold-Mariano-type test with a Newey-West (Bartlett) variance in time.
 
@@ -208,11 +266,29 @@ def dm_hac(d, sites, times, alpha=0.05, lag=None, method="dm_hac"):
     return _t_result(method, d.mean(), np.sqrt(v), np.inf, alpha, {"lag": lag})
 
 
+def da_test(d, folds, coords_space=None, times=None, alpha=0.05, estimator="parametric",
+            max_lag_space=None, max_lag_time=None, fits=None, method="da_p", **kwargs):
+    """Dependence-aware test (proposed); ``estimator`` selects the test-sampling variance.
+
+    ``'parametric'`` (DA-P, default) uses the separable exponential correlation
+    fitted to the directional variograms of the fold-centred differentials
+    (:func:`parametric_variance`); ``'kernel'`` (DA-K) uses the product-Bartlett
+    kernel with variogram-calibrated bandwidths (:func:`da_hac`). All other
+    steps (training term, reference distribution, diagnostics) are shared.
+    """
+    return da_hac(d, folds, coords_space, times, alpha, max_lag_space=max_lag_space,
+                  max_lag_time=max_lag_time, method=method, estimator=estimator, fits=fits, **kwargs)
+
+
 def da_hac(d, folds, coords_space=None, times=None, alpha=0.05, kappa=1.0,
            bandwidth=None, training_term=True, reference="satterthwaite",
            max_lag_space=None, max_lag_time=None, ranges=None, method="da_hac",
-           variants=None, rho=None):
-    """Dependence-aware HAC test with variogram-calibrated bandwidth (proposed).
+           variants=None, rho=None, estimator="kernel", fits=None):
+    """Dependence-aware test with variogram-calibrated test-sampling variance.
+
+    With ``estimator='kernel'`` (DA-K) the test-sampling variance is a
+    product-Bartlett kernel (HAC) estimate; with ``estimator='parametric'``
+    (DA-P, see :func:`da_test`) it is computed from the fitted variogram model.
 
     Steps
     -----
@@ -254,8 +330,8 @@ def da_hac(d, folds, coords_space=None, times=None, alpha=0.05, kappa=1.0,
     u = d - fm[f]
 
     if bandwidth is None:
-        if ranges is None:
-            r_s, r_t, _ = dependence_ranges(u, coords_space, times, max_lag_space, max_lag_time)
+        if ranges is None or (estimator == "parametric" and fits is None):
+            r_s, r_t, fits = dependence_ranges(u, coords_space, times, max_lag_space, max_lag_time)
         else:
             r_s, r_t = ranges
         b_s = kappa * r_s if r_s is not None else None
@@ -264,7 +340,10 @@ def da_hac(d, folds, coords_space=None, times=None, alpha=0.05, kappa=1.0,
         b_s, b_t = bandwidth
         r_s, r_t = b_s, b_t
 
-    v_hac, v_fold = hac_variance(u, coords_space, times, b_s or 0.0, b_t or 0.0, groups=f)
+    if estimator == "parametric":
+        v_hac, v_fold = parametric_variance(u, coords_space, times, fits, groups=f)
+    else:
+        v_hac, v_fold = hac_variance(u, coords_space, times, b_s or 0.0, b_t or 0.0, groups=f)
     s2u = np.mean(u ** 2)
     n_eff = float(np.clip(s2u / max(v_hac, 1e-300), 2.0, n))
     tau2_raw = fm.var(ddof=1) - v_fold.mean() if k > 1 else 0.0

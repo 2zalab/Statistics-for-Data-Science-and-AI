@@ -88,3 +88,23 @@ def test_hering_genton_without_dependence_matches_iid_variance():
     d = rng.standard_normal(len(t))
     r = hering_genton(d, cs, t, max_lag_space=5, max_lag_time=5)
     assert r.se == pytest.approx(d.std() / np.sqrt(len(d)), rel=0.25)
+
+
+def test_parametric_variance_without_dependence_is_iid():
+    from dacomp import parametric_variance
+    rng = np.random.default_rng(7)
+    u = rng.standard_normal(400)
+    v, vg = parametric_variance(u, None, None, None, groups=np.arange(400) % 4)
+    assert v == pytest.approx(np.mean(u ** 2) / 400)
+    assert vg == pytest.approx(np.mean(u ** 2) / 100)
+
+
+def test_da_test_runs_and_reports_diagnostics():
+    from dacomp import da_test
+    rng = np.random.default_rng(8)
+    coords = grid_coords(10)
+    f = st_fields(rng, spatial_cholesky(coords, 1.5), len(coords), 12, 0.5, 1)[0]
+    cs, t = panel_index(coords, 12)
+    folds = blocked_folds(make_blocks(cs, t, 5, 4), 5, rng)
+    r = da_test(f, folds, cs, t, max_lag_space=5, max_lag_time=6)
+    assert r.method == "da_p" and 0 <= r.pvalue <= 1 and r.info["range_ratio"] > 0
