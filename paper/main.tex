@@ -28,8 +28,12 @@
 \newcommand{\Var}{\operatorname{Var}}
 \newcommand{\Cov}{\operatorname{Cov}}
 \newcommand{\dbar}{\bar d}
+\makeatletter
+\newcommand{\tabinput}[1]{\@@input #1 }% primitive input, usable inside tabular
+\makeatother
 
 \raggedbottom
+\gdef\orcidlogo{\includegraphics[height=1.6ex]{Orcidlogo.eps}}% scaled ORCID icon
 
 \begin{document}
 
@@ -59,7 +63,16 @@
 
 \maketitle
 
-%%BODY%%
+\input{sections/01_introduction}
+\input{sections/02_related}
+\input{sections/03_problem}
+\input{sections/04_method}
+\input{sections/05_sim1}
+\input{sections/06_sim2}
+\input{sections/07_real}
+\input{sections/08_discussion}
+\input{sections/09_conclusion}
+\input{sections/10_declarations}
 
 \bibliography{references}
 
