@@ -7,3 +7,28 @@
 nyc_weather xgb vs rf: 66s
 nyc_weather xgb vs linear: 88s
 nyc_weather rf vs linear: 142s
+nyc_weather seed null: 789s
+pedestrian xgb vs rf: 84s
+pedestrian xgb vs linear: 114s
+pedestrian rf vs linear: 191s
+Traceback (most recent call last):
+  File "/home/user/statistics-for-data-science-and-ai/experiments/exp3_real_data.py", line 216, in <module>
+    main()
+    ~~~~^^
+  File "/home/user/statistics-for-data-science-and-ai/experiments/exp3_real_data.py", line 209, in main
+    res = compare(ds, "xgb", "xgb", parts, rng, seed_a=1000 + 2 * s, seed_b=1001 + 2 * s, repeats=1)
+  File "/home/user/statistics-for-data-science-and-ai/experiments/exp3_real_data.py", line 171, in compare
+    res = blocked_cv_tests(d, folds, blocks, ds["coords"], ds["times"], ds["sites"], rng, ablations=False,
+                           max_lag_space=ds["max_lag_space"], max_lag_time=ds["max_lag_time"])
+  File "/home/user/statistics-for-data-science-and-ai/src/dacomp/benchmark.py", line 41, in blocked_cv_tests
+    res += da_hac(d, folds, coords_space, times, alpha, ranges=ranges, fits=fits,
+           ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  estimator="parametric", variants=variants)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/statistics-for-data-science-and-ai/src/dacomp/inference.py", line 344, in da_hac
+    v_hac, v_fold = parametric_variance(u, coords_space, times, fits, groups=f)
+                    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/statistics-for-data-science-and-ai/src/dacomp/inference.py", line 232, in parametric_variance
+    pairs = cKDTree(z).query_pairs(r=1.0, p=np.inf, output_type="ndarray")
+  File "scipy/spatial/_ckdtree.pyx", line 1179, in scipy.spatial._ckdtree.cKDTree.query_pairs
+MemoryError: std::bad_alloc
