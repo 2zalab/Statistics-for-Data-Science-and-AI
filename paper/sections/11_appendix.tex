@@ -1,0 +1,43 @@
+\begin{appendices}
+
+\section{Detailed results of the case studies}\label{app:real}
+
+Tables~\ref{tab:app_nyc}--\ref{tab:app_las} report, for each data set, comparison and validation design, the estimated loss differential with the $95\%$ interval of each procedure, its raw $p$-value and the $p$-value adjusted by Holm's procedure over the three comparisons of the data set (same validation design and procedure). R: random CV; B: blocked CV; F: forward chaining.
+
+\begin{table}[p]
+\caption{Case study: NYC weather (log loss).}\label{tab:app_nyc}
+\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+CV & Procedure & $\hat\Delta$ [95\% CI] & $p$ & $p_{\text{Holm}}$\\
+\midrule
+\tabinput{tables/exp3_main_nyc_weather.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[p]
+\caption{Case study: Melbourne pedestrians (squared error of $\log(1+\text{count})$).}\label{tab:app_ped}
+\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+CV & Procedure & $\hat\Delta$ [95\% CI] & $p$ & $p_{\text{Holm}}$\\
+\midrule
+\tabinput{tables/exp3_main_pedestrian.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[p]
+\caption{Case study: Las Rosas maize (squared error of yield, (q/ha)$^2$).}\label{tab:app_las}
+\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+CV & Procedure & $\hat\Delta$ [95\% CI] & $p$ & $p_{\text{Holm}}$\\
+\midrule
+\tabinput{tables/exp3_main_lasrosas.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{appendices}

@@ -9,9 +9,12 @@ Code, data and manuscript for the paper
 When two machine learning models are compared on spatially or temporally
 correlated data, standard tests (paired *t*-test on fold scores, bootstrap of
 observations, corrected resampled *t*-test) can declare improvements that are
-not real. This repository implements **DA-HAC**, a dependence-aware test for
-the expected loss differential between two models evaluated by blocked
-cross-validation, and the simulation and case studies used to evaluate it.
+not real. This repository implements **DA-P**, a dependence-aware test for
+the expected loss differential between two learning procedures evaluated by
+blocked cross-validation (variogram-based test-sampling variance + training
+variance + Satterthwaite reference, with a three-way decision rule), its kernel
+variant DA-K, a space-time Hering-Genton test and the conventional procedures,
+together with the simulation and case studies used to evaluate them.
 
 ## Repository layout
 
@@ -20,11 +23,14 @@ src/dacomp/            Python package
   splitting.py         random and spatio-temporally blocked K-fold partitions, buffers
   variogram.py         directional empirical variograms, exponential fits, practical ranges
   inference.py         paired t, corrected resampled t, i.i.d./block bootstrap,
-                       mixed model, Diebold-Mariano-HAC, DA-HAC (proposed)
+                       mixed model, Diebold-Mariano-HAC, Hering-Genton,
+                       DA-K (kernel) and DA-P (proposed, `da_test`)
   simulate.py          separable spatio-temporal Gaussian fields
   benchmark.py         runs all blocked-CV procedures on one set of loss differentials
 experiments/
   exp1_controlled.py   Experiment 1: simulated loss-differential fields (exact truth)
+  exp1b_robustness.py  training correlation, misspecification, range grid
+  pilot/               pilot studies on separate seeds (design choices)
   exp2_learners.py     Experiment 2: XGBoost learners with exchangeable features
   exp3_real_data.py    Experiment 3: NYC weather, Melbourne pedestrians, Las Rosas maize
   analyze.py           tables (paper/tables) and figures (paper/figures)
@@ -41,33 +47,44 @@ pip install -e ".[test]"
 pytest
 ```
 
-Using DA-HAC on your own comparison only requires the per-observation
+Using DA-P on your own comparison only requires the per-observation
 out-of-fold losses of the two models, the fold labels and the coordinates:
 
 ```python
 import numpy as np
-from dacomp import make_blocks, blocked_folds, da_hac
+from dacomp import make_blocks, blocked_folds, da_test
 
 blocks = make_blocks(coords, times, space_tile=50_000, time_block=24 * 14)
 folds = blocked_folds(blocks, n_folds=5, rng=np.random.default_rng(0))
 # ... fit models A and B on each training fold, predict the held-out fold ...
 d = loss_A - loss_B                      # one value per observation
-res = da_hac(d, folds, coords_space=coords, times=times)
-print(res.estimate, res.ci_low, res.ci_high, res.pvalue)
+res = da_test(d, folds, coords_space=coords, times=times)              # rho0 = 1/K
+res05 = da_test(d, folds, coords_space=coords, times=times, rho=0.5)  # sensitivity
+print(res.estimate, res.ci_low, res.ci_high, res.pvalue, res.info)
+# three-way rule: improvement only if both p-values < 0.05; indeterminate if only res.pvalue < 0.05
 ```
 
 ## Reproducing the paper
 
 ```bash
-python experiments/exp1_controlled.py --pilot   # bandwidth pilot (separate seeds)
+# pilots on separate seeds (design choices reported in the paper)
+python experiments/exp1_controlled.py --pilot
+python experiments/pilot/exp1_pilot_df.py
+python experiments/pilot/pilot_variants2.py exp1
+python experiments/pilot/pilot_variants2.py exp2
+# main studies
 python experiments/exp1_controlled.py           # Experiment 1
+python experiments/exp1b_robustness.py --set rho
+python experiments/exp1b_robustness.py --set robust
+python experiments/exp1b_robustness.py --set range --pilot
+python experiments/exp1b_robustness.py --set range
 python experiments/exp2_learners.py             # Experiment 2
-python experiments/exp3_real_data.py            # Experiment 3
+python experiments/exp3_real_data.py            # case studies
 python experiments/analyze.py                   # tables and figures
 cd paper && make                                # manuscript
 ```
 
-All runs are seeded. On a 4-core machine the experiments take about three hours.
+All runs are seeded; re-running Experiment 1 reproduces the stored results exactly. On a 4-core machine the main studies take about five hours.
 
 ## Data
 

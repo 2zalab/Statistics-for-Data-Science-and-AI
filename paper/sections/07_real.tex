@@ -20,38 +20,36 @@ For the two hourly data sets, blocks are two-week windows ($26$ and $53$ blocks)
 
 \subsection{Results}
 
-Table~\ref{tab:real} and Fig.~\ref{fig:forest} report the estimated loss differentials (XGBoost minus competitor; negative values favour XGBoost), their $95\%$ intervals and the $p$-values; Table~\ref{tab:realdiag} gives the DA-HAC diagnostics and Fig.~\ref{fig:vario} the variograms of the fold-centred loss differentials.
+Table~\ref{tab:real} and Fig.~\ref{fig:forest} report the estimated loss differentials (first learner minus second; negative values favour the first), their $95\%$ intervals, and the $p$-values of the main procedures. Table~\ref{tab:realdiag} gives the DA-P diagnostics and the outcome of the three-way rule~\eqref{eq:rule}, and Fig.~\ref{fig:vario} the variograms of the fold-centred loss differentials.
 
-\paragraph{NYC weather: an improvement that vanishes.} Under random cross-validation, XGBoost appears clearly better than the random forest (log-loss gain $0.011$, $p\le0.001$ with every procedure) and than logistic regression (gain $0.041$, $p\le0.001$). Under two-week blocked cross-validation both gains disappear: the point estimates become slightly \emph{positive} ($+0.0036$ and $+0.0028$), and DA-HAC, the paired $t$-test and the cluster procedures find no significant difference ($p\ge0.28$). Random folds let the models recognise weather episodes from neighbouring hours of the same day; the apparent superiority of XGBoost reflects its better use of this leakage, not better prediction of new periods. The i.i.d. bootstrap applied to the blocked differentials even declares the random forest significantly \emph{better} than XGBoost ($p=0.023$), a reversal produced by ignoring the $20$-hour dependence range of the loss differential (Table~\ref{tab:realdiag}).
+\paragraph{NYC weather: the ranking depends on the question.} Under random cross-validation, XGBoost appears clearly better than the random forest (log-loss gain $0.011$) and than logistic regression ($0.041$), and the random forest better than logistic regression ($0.030$), with $p\le0.001$ for every procedure. Under two-week blocked cross-validation, i.e.\ for filling gaps of two weeks in the record, the three differences vanish ($|\hat\Delta|\le0.004$, DA-P $p\ge0.43$): random folds let the models recognise weather episodes from neighbouring hours of the same day, and the apparent superiority of XGBoost reflects its better use of this leakage. The i.i.d.\ bootstrap applied to the blocked differentials even declares the random forest significantly \emph{better} than XGBoost ($p=0.023$), a reversal produced by ignoring the $20$-hour dependence range of the loss differential. Under forward chaining, i.e.\ for forecasting later weeks from earlier ones, the random forest is better than XGBoost by $0.030$ (DA-P $p=0.008$, Holm-adjusted $0.023$, significant also with $\rho_0=0.5$), while the paired $t$-test, with three degrees of freedom, does not detect this difference ($p=0.050$, adjusted $0.15$). For XGBoost against logistic regression under forward chaining, the Hering--Genton test reports $p=0.036$ whereas DA-P, whose training term dominates the variance ($\hat\nu=4$), reports $p=0.42$: with nested training sets of very different sizes, the fold-to-fold variability of the comparison is large, and only a procedure that accounts for it avoids a spurious conclusion.
 
-\paragraph{Melbourne pedestrians: a small gain of uncertain reality.} XGBoost and the random forest are indistinguishable under random cross-validation, but under blocked cross-validation XGBoost has a small advantage ($0.0025$ in squared error of the log count). The paired $t$-test ($p=0.033$) and the i.i.d. bootstrap ($p=0.011$) call it significant; DA-HAC ($p=0.17$), DM--HAC ($p=0.16$) and the cluster procedures ($p\ge0.40$) do not. The variogram of the loss differential has a short estimated range ($5$ hours) but pedestrian traffic also has daily and weekly cycles and holiday effects, which an exponential variogram does not represent; the wider block-bootstrap interval suggests that some of this longer-range dependence is missed by the kernel estimator. We would conclude that the gain is not established. By contrast, the advantage of XGBoost over the linear baseline ($1.85$) is overwhelming under every procedure.
+\paragraph{Melbourne pedestrians: a small gain of uncertain reality.} XGBoost and the random forest are indistinguishable under random cross-validation and under forward chaining, but under blocked cross-validation XGBoost has a small advantage ($0.0025$ in squared error of the log count). The paired $t$-test ($p=0.033$) and the i.i.d. bootstrap ($p=0.011$) call it significant; DA-P and Hering--Genton ($p=0.47$) and the cluster procedures ($p\ge0.40$) do not. The variogram of the loss differential has a short estimated range ($5$ hours), but pedestrian traffic also has daily and weekly cycles and holiday effects that an exponential model does not represent; we would conclude that the gain is not established. By contrast, the advantage of both tree ensembles over the linear baseline ($1.85$) is overwhelming under every procedure and validation design.
 
-\paragraph{Las Rosas maize: when the diagnostics warn.} The gain of XGBoost over the random forest is $2.8$\,(q/ha)$^2$ under random cross-validation, significant with all procedures ($p\le0.013$), and much larger but much more uncertain under spatial blocking ($21$). The i.i.d. bootstrap ($p=0.001$) and the block bootstrap ($p=0.043$) declare it significant, the LMM is borderline ($p=0.069$), and the paired $t$-test ($p=0.31$) and DA-HAC ($p=0.45$) do not. The DA-HAC diagnostics explain why: the loss differential has a spatial range of about $150$\,m in a field of $660\times380$\,m (range ratio $0.40$), so the effective sample size is about $150$ for $3443$ yield-monitor points, and the training term dominates the variance ($\hat\nu=4.7$). Following our recommendations, this comparison is unresolved: the data contain too few independent regions to tell whether gradient boosting is genuinely better than the random forest on this field. The gain over the linear model ($160$, interval $[110,210]$) is, again, unambiguous.
+\paragraph{Las Rosas maize: limited information.} The gain of XGBoost over the random forest is $2.8$\,(q/ha)$^2$ under random cross-validation, significant with all procedures ($p\le0.013$), and much larger but much more uncertain under spatial blocking ($21$). The i.i.d. bootstrap ($p=0.001$) and the block bootstrap ($p=0.043$) declare it significant; the paired $t$-test ($p=0.31$), Hering--Genton ($p=0.51$) and DA-P ($p=0.46$) do not. The DA-P diagnostics explain why: the loss differential has a spatial range of about $150$\,m in a field of $660\times380$\,m (range ratio $0.40$), so that the $3443$ yield-monitor points carry the information of only about $20$ independent observations. With so little information, even the large gains over the linear model are only moderately significant: $p=0.011$ (adjusted $0.032$) for XGBoost, which survives the three-way rule, and $p=0.043$ (adjusted $0.086$) for the random forest, which does not survive the correction for multiplicity. Under random cross-validation all of these comparisons appear decisive.
 
-\paragraph{Interpolation and forecasting.} Blocked cross-validation with blocks distributed over the whole period predicts each held-out window from data both before and after it; it answers an \emph{interpolation} question (filling gaps in a known record). For the two hourly data sets we therefore also use \emph{forward chaining}~\cite{tashman2000}: the $26$ or $53$ two-week blocks are grouped into $K=5$ consecutive segments, and each of the last four segments is predicted from all observations that precede it, minus a $24$-hour buffer, which answers a \emph{forecasting} question. The first segment is used for training only, the training sets are nested, and the same tests are applied to the $K-1=4$ test segments.
-
-\paragraph{Multiplicity.} With three learners, each data set and validation design involves three pairwise comparisons. We report raw $p$-values and $p$-values adjusted by Holm's procedure~\cite{holm1979} within each data set, validation design and test, and we treat the case studies as illustrations of how conclusions depend on the inferential choices rather than as definitive rankings of the learners.
-
-\paragraph{Seed-null diagnostic.} Table~\ref{tab:seednull} reports how often each procedure declares one of two XGBoost runs, differing only by their seed, significantly better than the other. Procedures that resample observations independently do so in $33$--$87\%$ of the pairs under blocked cross-validation, and in $43\%$ of the pairs for the pedestrian data under random cross-validation, where the subsampling noise of the learner is spatially and temporally coherent. DM--HAC does so in $23$--$33\%$. DA-HAC ($0$--$10\%$) and the cluster procedures ($0$--$10\%$) are the least sensitive to training noise, followed by the blocked paired $t$-test ($0$--$13\%$). With $30$ pairs per data set, these rates have a Monte Carlo standard error of up to $9$ percentage points and should be read qualitatively.
+\paragraph{Seed-null diagnostic.} Table~\ref{tab:seednull} reports how often each procedure declares one of two XGBoost runs, differing only by their seed, significantly better than the other. Procedures that resample observations independently do so in $33$--$87\%$ of the pairs under blocked cross-validation, and in $40\%$ of the pairs for the pedestrian data under random cross-validation, where the subsampling noise of the learner is temporally coherent. DM--HAC does so in $23$--$33\%$ and Hering--Genton in $20\%$ of the pedestrian pairs. DA-P ($0$--$3\%$) and the cluster procedures ($0$--$13\%$) are the least sensitive to training noise, followed by the blocked paired $t$-test ($0$--$13\%$). With $30$ pairs per data set, these rates have a Monte Carlo standard error of up to $9$ percentage points and should be read qualitatively.
 
 \begin{table}[t]
-\caption{Case studies: estimated loss differential $\hat\Delta$ (XGBoost minus competitor; negative favours XGBoost) with $95\%$ confidence interval and $p$-value. R: random $5$-fold CV; B: blocked $5$-fold CV. Losses: log loss (NYC weather), squared error of $\log(1+\text{count})$ (pedestrians), squared error of yield in (q/ha)$^2$ (maize).}\label{tab:real}
-\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{@{}llrr@{}}
+\caption{Case studies: estimated loss differential $\hat\Delta$ (first minus second learner; negative favours the first) with $95\%$ confidence interval, and $p$-values of five procedures (for R, the paired $t$-test is computed on one random $5$-fold run); the last column is the DA-P $p$-value adjusted by Holm's procedure over the three comparisons of each data set and validation design. R: random CV (estimate and interval from the corrected resampled $t$-test on $5\times5$ repeated CV); B: blocked $5$-fold CV and F: forward chaining (estimate and interval from DA-P). XGB: XGBoost; RF: random forest; Lin: linear baseline. Losses: log loss (NYC weather), squared error of $\log(1+\text{count})$ (pedestrians), squared error of yield in (q/ha)$^2$ (maize). Detailed results for all procedures are given in Appendix~\ref{app:real}.}\label{tab:real}
+\centering\scriptsize\setlength{\tabcolsep}{2pt}
+\begin{tabular}{@{}llrrrrrrr@{}}
 \toprule
-CV & Procedure & $\hat\Delta$ [95\% CI] & $p$\\
+& & & \multicolumn{6}{c}{$p$-value}\\
+\cmidrule(l){4-9}
+Comp. & CV & $\hat\Delta$ [95\% CI] & Paired $t$ & i.i.d. bs & Block bs & H--G & DA-P & Holm\\
 \midrule
-\tabinput{tables/exp3_main.tex}
+\tabinput{tables/exp3_compact.tex}
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{table}[t]
-\caption{Case studies: DA-HAC diagnostics on the blocked loss differentials: estimated practical ranges in space and time, effective sample size $\hat n_{\mathrm{eff}}$, degrees of freedom $\hat\nu$ and training variance $\hat\tau^2$.}\label{tab:realdiag}
-\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{@{}llrrrrr@{}}
+\caption{Case studies: DA-P diagnostics (estimated practical ranges, effective sample size $\hat n_{\mathrm{eff}}$, degrees of freedom $\hat\nu$, range ratio) and outcome of the three-way rule~\eqref{eq:rule} on raw $p$-values. B: blocked CV; F: forward chaining.}\label{tab:realdiag}
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lllrrrrrl@{}}
 \toprule
-Data set & Comparison & $\hat r_S$ & $\hat r_T$ & $\hat n_{\mathrm{eff}}$ & $\hat\nu$ & $\hat\tau^2$\\
+Data set & Comparison & CV & $\hat r_S$ & $\hat r_T$ & $\hat n_{\mathrm{eff}}$ & $\hat\nu$ & $\hat r/L$ & Decision\\
 \midrule
 \tabinput{tables/exp3_diag.tex}
 \bottomrule
@@ -59,13 +57,13 @@ Data set & Comparison & $\hat r_S$ & $\hat r_T$ & $\hat n_{\mathrm{eff}}$ & $\ha
 \end{table}
 
 \begin{table}[t]
-\caption{Seed-null diagnostic: percentage of $30$ pairs of XGBoost runs differing only in their random seed for which the procedure rejects equality at $\alpha=0.05$. R: random CV; B: blocked CV; --: not available (no time axis).}\label{tab:seednull}
-\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{@{}lrrrrrrrr@{}}
+\caption{Seed-null diagnostic: percentage of $30$ pairs of XGBoost runs differing only in their random seed for which the procedure rejects equality at $\alpha=0.05$. --: not available (no time axis).}\label{tab:seednull}
+\centering\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrrrrrrrrr@{}}
 \toprule
-& \multicolumn{2}{c}{Random CV} & \multicolumn{6}{c}{Blocked CV}\\
-\cmidrule(lr){2-3}\cmidrule(l){4-9}
-Data set & Paired $t$ & i.i.d. bs & Paired $t$ & i.i.d. bs & Block bs & LMM & DM--HAC & DA-HAC\\
+& \multicolumn{2}{c}{Random CV} & \multicolumn{7}{c}{Blocked CV}\\
+\cmidrule(lr){2-3}\cmidrule(l){4-10}
+Data set & Paired $t$ & i.i.d. bs & Paired $t$ & i.i.d. bs & Block bs & LMM & DM--HAC & H--G & DA-P\\
 \midrule
 \tabinput{tables/exp3_seednull.tex}
 \bottomrule
@@ -75,7 +73,7 @@ Data set & Paired $t$ & i.i.d. bs & Paired $t$ & i.i.d. bs & Block bs & LMM & DM
 \begin{figure}[t]
 \centering
 \includegraphics[width=\textwidth]{figures/exp3_forest.pdf}
-\caption{Case studies: $95\%$ confidence intervals for the loss differential (XGBoost minus competitor) under random (R) and blocked (B) cross-validation. The dashed line marks equal performance.}\label{fig:forest}
+\caption{Case studies: $95\%$ confidence intervals for the loss differential under random (R), blocked (B) and forward-chaining (F) cross-validation. The dashed line marks equal performance.}\label{fig:forest}
 \end{figure}
 
 \begin{figure}[t]
@@ -83,4 +81,3 @@ Data set & Paired $t$ & i.i.d. bs & Paired $t$ & i.i.d. bs & Block bs & LMM & DM
 \includegraphics[width=\textwidth]{figures/exp3_variograms.pdf}
 \caption{Case studies: empirical semivariograms of the fold-centred loss differentials $\tilde u$ (XGBoost vs random forest, blocked CV; points), fitted exponential models (lines) and practical ranges (dotted).}\label{fig:vario}
 \end{figure}
-

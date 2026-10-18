@@ -1,0 +1,12 @@
+nyc_weather xgb vs rf: 67s
+nyc_weather xgb vs linear: 93s
+nyc_weather rf vs linear: 150s
+nyc_weather seed null: 866s
+pedestrian xgb vs rf: 82s
+pedestrian xgb vs linear: 114s
+pedestrian rf vs linear: 193s
+pedestrian seed null: 1404s
+lasrosas xgb vs rf: 21s
+lasrosas xgb vs linear: 31s
+lasrosas rf vs linear: 47s
+lasrosas seed null: 240s

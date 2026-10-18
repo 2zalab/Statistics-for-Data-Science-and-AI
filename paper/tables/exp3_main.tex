@@ -1,67 +1,141 @@
-\multicolumn{4}{@{}l}{\textbf{NYC weather (rain, log loss)}} \\
-\multicolumn{4}{@{}l}{\emph{XGBoost vs random forest}} \\
-\quad R & Paired $t$ (folds) & -0.0112 [-0.0121, -0.0103] & $<$0.001 \\
-\quad R & i.i.d. bootstrap & -0.0112 [-0.0131, -0.0096] & 0.001 \\
-\quad R & Corrected resampled $t$ & -0.0115 [-0.0131, -0.0098] & $<$0.001 \\
-\quad B & Paired $t$ (folds) & 0.0035 [-0.0082, 0.0152] & 0.454 \\
-\quad B & i.i.d. bootstrap & 0.0036 [0.0005, 0.0067] & 0.023 \\
-\quad B & Block bootstrap & 0.0036 [-0.0028, 0.0099] & 0.279 \\
-\quad B & Mixed model & 0.0036 [-0.0033, 0.0105] & 0.291 \\
-\quad B & DM--HAC (time only) & 0.0036 [-0.0007, 0.0079] & 0.099 \\
-\quad B & DA-HAC (proposed) & 0.0036 [-0.0076, 0.0148] & 0.499 \\
+\multicolumn{5}{@{}l}{\textbf{NYC weather (rain, log loss)}} \\
+\multicolumn{5}{@{}l}{\emph{XGBoost vs random forest}} \\
+\quad R & Paired $t$ (folds) & -0.0112 [-0.0121, -0.0103] & $<$0.001 & $<$0.001 \\
+\quad R & i.i.d. bootstrap & -0.0112 [-0.0131, -0.0096] & 0.001 & 0.003 \\
+\quad R & Corrected resampled $t$ & -0.0115 [-0.0131, -0.0098] & $<$0.001 & $<$0.001 \\
+\quad B & Paired $t$ (folds) & 0.0035 [-0.0082, 0.0152] & 0.454 & 1.000 \\
+\quad B & i.i.d. bootstrap & 0.0036 [0.0005, 0.0067] & 0.023 & 0.069 \\
+\quad B & Block bootstrap & 0.0036 [-0.0028, 0.0099] & 0.279 & 0.837 \\
+\quad B & Mixed model & 0.0036 [-0.0033, 0.0105] & 0.291 & 0.874 \\
+\quad B & DM--HAC (time only) & 0.0036 [-0.0007, 0.0079] & 0.099 & 0.298 \\
+\quad B & Hering--Genton (space--time) & 0.0036 [-0.0054, 0.0126] & 0.435 & 1.000 \\
+\quad B & DA-K (kernel variant) & 0.0036 [-0.0076, 0.0148] & 0.499 & 1.000 \\
+\quad B & DA-P (proposed) & 0.0036 [-0.0055, 0.0127] & 0.438 & 1.000 \\
+\quad F & Paired $t$ (folds) & 0.0300 [-0.0001, 0.0601] & 0.050 & 0.151 \\
+\quad F & Block bootstrap & 0.0299 [0.0132, 0.0500] & 0.002 & 0.006 \\
+\quad F & Hering--Genton (space--time) & 0.0299 [0.0081, 0.0517] & 0.007 & 0.021 \\
+\quad F & DA-P (proposed) & 0.0299 [0.0080, 0.0519] & 0.008 & 0.023 \\
 \addlinespace
-\multicolumn{4}{@{}l}{\emph{XGBoost vs linear}} \\
-\quad R & Paired $t$ (folds) & -0.0413 [-0.0447, -0.0378] & $<$0.001 \\
-\quad R & i.i.d. bootstrap & -0.0413 [-0.0445, -0.0377] & 0.001 \\
-\quad R & Corrected resampled $t$ & -0.0413 [-0.0453, -0.0373] & $<$0.001 \\
-\quad B & Paired $t$ (folds) & 0.0032 [-0.0075, 0.0139] & 0.459 \\
-\quad B & i.i.d. bootstrap & 0.0028 [-0.0010, 0.0062] & 0.119 \\
-\quad B & Block bootstrap & 0.0028 [-0.0046, 0.0116] & 0.495 \\
-\quad B & Mixed model & 0.0028 [-0.0054, 0.0111] & 0.487 \\
-\quad B & DM--HAC (time only) & 0.0028 [-0.0030, 0.0087] & 0.344 \\
-\quad B & DA-HAC (proposed) & 0.0028 [-0.0052, 0.0109] & 0.491 \\
+\multicolumn{5}{@{}l}{\emph{XGBoost vs linear}} \\
+\quad R & Paired $t$ (folds) & -0.0413 [-0.0447, -0.0378] & $<$0.001 & $<$0.001 \\
+\quad R & i.i.d. bootstrap & -0.0413 [-0.0449, -0.0380] & 0.001 & 0.003 \\
+\quad R & Corrected resampled $t$ & -0.0413 [-0.0453, -0.0373] & $<$0.001 & $<$0.001 \\
+\quad B & Paired $t$ (folds) & 0.0032 [-0.0075, 0.0139] & 0.459 & 1.000 \\
+\quad B & i.i.d. bootstrap & 0.0028 [-0.0010, 0.0065] & 0.137 & 0.274 \\
+\quad B & Block bootstrap & 0.0028 [-0.0042, 0.0106] & 0.466 & 0.932 \\
+\quad B & Mixed model & 0.0028 [-0.0054, 0.0111] & 0.487 & 0.975 \\
+\quad B & DM--HAC (time only) & 0.0028 [-0.0030, 0.0087] & 0.344 & 0.687 \\
+\quad B & Hering--Genton (space--time) & 0.0028 [-0.0109, 0.0165] & 0.685 & 1.000 \\
+\quad B & DA-K (kernel variant) & 0.0028 [-0.0052, 0.0109] & 0.491 & 1.000 \\
+\quad B & DA-P (proposed) & 0.0028 [-0.0109, 0.0165] & 0.685 & 1.000 \\
+\quad F & Paired $t$ (folds) & 0.0256 [-0.0409, 0.0922] & 0.308 & 0.616 \\
+\quad F & Block bootstrap & 0.0256 [0.0005, 0.0513] & 0.050 & 0.100 \\
+\quad F & Hering--Genton (space--time) & 0.0256 [0.0017, 0.0495] & 0.036 & 0.072 \\
+\quad F & DA-P (proposed) & 0.0256 [-0.0511, 0.1023] & 0.418 & 0.837 \\
 \addlinespace
-\multicolumn{4}{@{}l}{\textbf{Melbourne pedestrians (log count, MSE)}} \\
-\multicolumn{4}{@{}l}{\emph{XGBoost vs random forest}} \\
-\quad R & Paired $t$ (folds) & 0.0003 [-0.0024, 0.0030] & 0.795 \\
-\quad R & i.i.d. bootstrap & 0.0003 [-0.0015, 0.0019] & 0.757 \\
-\quad R & Corrected resampled $t$ & 0.0003 [-0.0020, 0.0027] & 0.782 \\
-\quad B & Paired $t$ (folds) & -0.0025 [-0.0047, -0.0003] & 0.033 \\
-\quad B & i.i.d. bootstrap & -0.0025 [-0.0043, -0.0007] & 0.011 \\
-\quad B & Block bootstrap & -0.0025 [-0.0090, 0.0027] & 0.402 \\
-\quad B & Mixed model & -0.0025 [-0.0086, 0.0036] & 0.415 \\
-\quad B & DM--HAC (time only) & -0.0025 [-0.0060, 0.0010] & 0.156 \\
-\quad B & DA-HAC (proposed) & -0.0025 [-0.0061, 0.0011] & 0.172 \\
+\multicolumn{5}{@{}l}{\emph{Random forest vs linear}} \\
+\quad R & Paired $t$ (folds) & -0.0298 [-0.0324, -0.0271] & $<$0.001 & $<$0.001 \\
+\quad R & i.i.d. bootstrap & -0.0298 [-0.0327, -0.0270] & 0.001 & 0.003 \\
+\quad R & Corrected resampled $t$ & -0.0302 [-0.0338, -0.0265] & $<$0.001 & $<$0.001 \\
+\quad B & Paired $t$ (folds) & -0.0001 [-0.0130, 0.0128] & 0.978 & 1.000 \\
+\quad B & i.i.d. bootstrap & -0.0005 [-0.0037, 0.0030] & 0.763 & 0.763 \\
+\quad B & Block bootstrap & -0.0005 [-0.0064, 0.0057] & 0.875 & 0.932 \\
+\quad B & Mixed model & -0.0005 [-0.0068, 0.0059] & 0.878 & 0.975 \\
+\quad B & DM--HAC (time only) & -0.0005 [-0.0052, 0.0042] & 0.842 & 0.842 \\
+\quad B & Hering--Genton (space--time) & -0.0005 [-0.0109, 0.0099] & 0.928 & 1.000 \\
+\quad B & DA-K (kernel variant) & -0.0005 [-0.0155, 0.0146] & 0.941 & 1.000 \\
+\quad B & DA-P (proposed) & -0.0005 [-0.0109, 0.0099] & 0.928 & 1.000 \\
+\quad F & Paired $t$ (folds) & -0.0065 [-0.0580, 0.0450] & 0.717 & 0.717 \\
+\quad F & Block bootstrap & -0.0064 [-0.0243, 0.0094] & 0.438 & 0.438 \\
+\quad F & Hering--Genton (space--time) & -0.0064 [-0.0178, 0.0050] & 0.271 & 0.271 \\
+\quad F & DA-P (proposed) & -0.0064 [-0.0777, 0.0649] & 0.803 & 0.837 \\
 \addlinespace
-\multicolumn{4}{@{}l}{\emph{XGBoost vs linear}} \\
-\quad R & Paired $t$ (folds) & -1.89 [-1.91, -1.88] & $<$0.001 \\
-\quad R & i.i.d. bootstrap & -1.89 [-1.91, -1.87] & 0.001 \\
-\quad R & Corrected resampled $t$ & -1.89 [-1.91, -1.87] & $<$0.001 \\
-\quad B & Paired $t$ (folds) & -1.85 [-1.90, -1.80] & $<$0.001 \\
-\quad B & i.i.d. bootstrap & -1.85 [-1.87, -1.83] & 0.001 \\
-\quad B & Block bootstrap & -1.85 [-1.91, -1.78] & 0.001 \\
-\quad B & Mixed model & -1.85 [-1.91, -1.78] & $<$0.001 \\
-\quad B & DM--HAC (time only) & -1.85 [-1.89, -1.81] & $<$0.001 \\
-\quad B & DA-HAC (proposed) & -1.85 [-1.90, -1.80] & $<$0.001 \\
+\multicolumn{5}{@{}l}{\textbf{Melbourne pedestrians (log count, MSE)}} \\
+\multicolumn{5}{@{}l}{\emph{XGBoost vs random forest}} \\
+\quad R & Paired $t$ (folds) & 0.0003 [-0.0024, 0.0030] & 0.795 & 0.795 \\
+\quad R & i.i.d. bootstrap & 0.0003 [-0.0015, 0.0019] & 0.757 & 0.757 \\
+\quad R & Corrected resampled $t$ & 0.0003 [-0.0020, 0.0027] & 0.782 & 0.782 \\
+\quad B & Paired $t$ (folds) & -0.0025 [-0.0047, -0.0003] & 0.033 & 0.033 \\
+\quad B & i.i.d. bootstrap & -0.0025 [-0.0043, -0.0007] & 0.011 & 0.011 \\
+\quad B & Block bootstrap & -0.0025 [-0.0090, 0.0027] & 0.402 & 0.402 \\
+\quad B & Mixed model & -0.0025 [-0.0086, 0.0036] & 0.415 & 0.415 \\
+\quad B & DM--HAC (time only) & -0.0025 [-0.0060, 0.0010] & 0.156 & 0.156 \\
+\quad B & Hering--Genton (space--time) & -0.0025 [-0.0093, 0.0043] & 0.473 & 0.473 \\
+\quad B & DA-K (kernel variant) & -0.0025 [-0.0061, 0.0011] & 0.172 & 0.172 \\
+\quad B & DA-P (proposed) & -0.0025 [-0.0093, 0.0043] & 0.473 & 0.473 \\
+\quad F & Paired $t$ (folds) & -0.0009 [-0.0150, 0.0132] & 0.855 & 0.855 \\
+\quad F & Block bootstrap & -0.0003 [-0.0089, 0.0067] & 0.932 & 0.932 \\
+\quad F & Hering--Genton (space--time) & -0.0003 [-0.0099, 0.0092] & 0.947 & 0.947 \\
+\quad F & DA-P (proposed) & -0.0003 [-0.0099, 0.0092] & 0.947 & 0.947 \\
 \addlinespace
-\multicolumn{4}{@{}l}{\textbf{Las Rosas maize (yield, MSE)}} \\
-\multicolumn{4}{@{}l}{\emph{XGBoost vs random forest}} \\
-\quad R & Paired $t$ (folds) & -2.82 [-4.64, -0.99] & 0.013 \\
-\quad R & i.i.d. bootstrap & -2.82 [-3.67, -1.81] & 0.001 \\
-\quad R & Corrected resampled $t$ & -2.36 [-3.53, -1.19] & $<$0.001 \\
-\quad B & Paired $t$ (folds) & -20.9 [-70.4, 28.7] & 0.308 \\
-\quad B & i.i.d. bootstrap & -21.1 [-24.4, -18.1] & 0.001 \\
-\quad B & Block bootstrap & -21.1 [-47.0, -3.3] & 0.043 \\
-\quad B & Mixed model & -21.1 [-44.0, 1.8] & 0.069 \\
-\quad B & DA-HAC (proposed) & -21.1 [-88.3, 46.1] & 0.449 \\
+\multicolumn{5}{@{}l}{\emph{XGBoost vs linear}} \\
+\quad R & Paired $t$ (folds) & -1.89 [-1.91, -1.88] & $<$0.001 & $<$0.001 \\
+\quad R & i.i.d. bootstrap & -1.89 [-1.91, -1.88] & 0.001 & 0.003 \\
+\quad R & Corrected resampled $t$ & -1.89 [-1.91, -1.87] & $<$0.001 & $<$0.001 \\
+\quad B & Paired $t$ (folds) & -1.85 [-1.90, -1.80] & $<$0.001 & $<$0.001 \\
+\quad B & i.i.d. bootstrap & -1.85 [-1.87, -1.83] & 0.001 & 0.003 \\
+\quad B & Block bootstrap & -1.85 [-1.91, -1.79] & 0.001 & 0.003 \\
+\quad B & Mixed model & -1.85 [-1.91, -1.78] & $<$0.001 & $<$0.001 \\
+\quad B & DM--HAC (time only) & -1.85 [-1.89, -1.81] & $<$0.001 & $<$0.001 \\
+\quad B & Hering--Genton (space--time) & -1.85 [-1.91, -1.79] & $<$0.001 & $<$0.001 \\
+\quad B & DA-K (kernel variant) & -1.85 [-1.90, -1.80] & $<$0.001 & $<$0.001 \\
+\quad B & DA-P (proposed) & -1.85 [-1.91, -1.79] & $<$0.001 & $<$0.001 \\
+\quad F & Paired $t$ (folds) & -1.83 [-2.15, -1.50] & $<$0.001 & 0.001 \\
+\quad F & Block bootstrap & -1.83 [-1.91, -1.75] & 0.001 & 0.003 \\
+\quad F & Hering--Genton (space--time) & -1.83 [-1.92, -1.74] & $<$0.001 & $<$0.001 \\
+\quad F & DA-P (proposed) & -1.83 [-2.26, -1.41] & $<$0.001 & 0.001 \\
 \addlinespace
-\multicolumn{4}{@{}l}{\emph{XGBoost vs linear}} \\
-\quad R & Paired $t$ (folds) & -131.9 [-141.2, -122.7] & $<$0.001 \\
-\quad R & i.i.d. bootstrap & -131.9 [-138.1, -126.0] & 0.001 \\
-\quad R & Corrected resampled $t$ & -131.7 [-137.5, -125.9] & $<$0.001 \\
-\quad B & Paired $t$ (folds) & -160.0 [-193.0, -127.1] & $<$0.001 \\
-\quad B & i.i.d. bootstrap & -160.0 [-167.7, -152.1] & 0.001 \\
-\quad B & Block bootstrap & -160.0 [-210.4, -112.3] & 0.001 \\
-\quad B & Mixed model & -160.0 [-210.0, -109.9] & $<$0.001 \\
-\quad B & DA-HAC (proposed) & -160.0 [-210.3, -109.6] & $<$0.001 \\
+\multicolumn{5}{@{}l}{\emph{Random forest vs linear}} \\
+\quad R & Paired $t$ (folds) & -1.89 [-1.91, -1.88] & $<$0.001 & $<$0.001 \\
+\quad R & i.i.d. bootstrap & -1.89 [-1.91, -1.87] & 0.001 & 0.003 \\
+\quad R & Corrected resampled $t$ & -1.89 [-1.91, -1.87] & $<$0.001 & $<$0.001 \\
+\quad B & Paired $t$ (folds) & -1.85 [-1.90, -1.79] & $<$0.001 & $<$0.001 \\
+\quad B & i.i.d. bootstrap & -1.85 [-1.87, -1.83] & 0.001 & 0.003 \\
+\quad B & Block bootstrap & -1.85 [-1.91, -1.78] & 0.001 & 0.003 \\
+\quad B & Mixed model & -1.85 [-1.91, -1.78] & $<$0.001 & $<$0.001 \\
+\quad B & DM--HAC (time only) & -1.85 [-1.88, -1.81] & $<$0.001 & $<$0.001 \\
+\quad B & Hering--Genton (space--time) & -1.85 [-1.91, -1.78] & $<$0.001 & $<$0.001 \\
+\quad B & DA-K (kernel variant) & -1.85 [-1.90, -1.79] & $<$0.001 & $<$0.001 \\
+\quad B & DA-P (proposed) & -1.85 [-1.91, -1.78] & $<$0.001 & $<$0.001 \\
+\quad F & Paired $t$ (folds) & -1.83 [-2.16, -1.49] & $<$0.001 & 0.001 \\
+\quad F & Block bootstrap & -1.83 [-1.90, -1.75] & 0.001 & 0.003 \\
+\quad F & Hering--Genton (space--time) & -1.83 [-1.92, -1.75] & $<$0.001 & $<$0.001 \\
+\quad F & DA-P (proposed) & -1.83 [-2.27, -1.40] & $<$0.001 & 0.001 \\
+\addlinespace
+\multicolumn{5}{@{}l}{\textbf{Las Rosas maize (yield, MSE)}} \\
+\multicolumn{5}{@{}l}{\emph{XGBoost vs random forest}} \\
+\quad R & Paired $t$ (folds) & -2.82 [-4.64, -0.99] & 0.013 & 0.013 \\
+\quad R & i.i.d. bootstrap & -2.82 [-3.67, -1.81] & 0.001 & 0.003 \\
+\quad R & Corrected resampled $t$ & -2.36 [-3.53, -1.19] & $<$0.001 & $<$0.001 \\
+\quad B & Paired $t$ (folds) & -20.9 [-70.4, 28.7] & 0.308 & 0.308 \\
+\quad B & i.i.d. bootstrap & -21.1 [-24.4, -18.1] & 0.001 & 0.003 \\
+\quad B & Block bootstrap & -21.1 [-47.0, -3.3] & 0.043 & 0.043 \\
+\quad B & Mixed model & -21.1 [-44.0, 1.8] & 0.069 & 0.069 \\
+\quad B & Hering--Genton (space--time) & -21.1 [-84.2, 41.9] & 0.511 & 0.511 \\
+\quad B & DA-K (kernel variant) & -21.1 [-88.3, 46.1] & 0.449 & 0.449 \\
+\quad B & DA-P (proposed) & -21.1 [-80.7, 38.4] & 0.459 & 0.459 \\
+\addlinespace
+\multicolumn{5}{@{}l}{\emph{XGBoost vs linear}} \\
+\quad R & Paired $t$ (folds) & -131.9 [-141.2, -122.7] & $<$0.001 & $<$0.001 \\
+\quad R & i.i.d. bootstrap & -131.9 [-138.1, -126.0] & 0.001 & 0.003 \\
+\quad R & Corrected resampled $t$ & -131.7 [-137.5, -125.9] & $<$0.001 & $<$0.001 \\
+\quad B & Paired $t$ (folds) & -160.0 [-193.0, -127.1] & $<$0.001 & $<$0.001 \\
+\quad B & i.i.d. bootstrap & -160.0 [-167.7, -152.1] & 0.001 & 0.003 \\
+\quad B & Block bootstrap & -160.0 [-210.4, -112.3] & 0.001 & 0.003 \\
+\quad B & Mixed model & -160.0 [-210.0, -109.9] & $<$0.001 & $<$0.001 \\
+\quad B & Hering--Genton (space--time) & -160.0 [-263.1, -56.9] & 0.002 & 0.007 \\
+\quad B & DA-K (kernel variant) & -160.0 [-210.3, -109.6] & $<$0.001 & $<$0.001 \\
+\quad B & DA-P (proposed) & -160.0 [-277.1, -42.8] & 0.011 & 0.032 \\
+\addlinespace
+\multicolumn{5}{@{}l}{\emph{Random forest vs linear}} \\
+\quad R & Paired $t$ (folds) & -129.1 [-138.8, -119.3] & $<$0.001 & $<$0.001 \\
+\quad R & i.i.d. bootstrap & -129.1 [-134.9, -123.1] & 0.001 & 0.003 \\
+\quad R & Corrected resampled $t$ & -129.4 [-135.1, -123.6] & $<$0.001 & $<$0.001 \\
+\quad B & Paired $t$ (folds) & -133.6 [-229.6, -37.7] & 0.018 & 0.036 \\
+\quad B & i.i.d. bootstrap & -133.2 [-142.5, -124.0] & 0.001 & 0.003 \\
+\quad B & Block bootstrap & -133.2 [-195.2, -67.1] & 0.001 & 0.003 \\
+\quad B & Mixed model & -133.2 [-202.6, -63.8] & $<$0.001 & $<$0.001 \\
+\quad B & Hering--Genton (space--time) & -133.2 [-264.3, -2.0] & 0.047 & 0.093 \\
+\quad B & DA-K (kernel variant) & -133.2 [-244.1, -22.3] & 0.024 & 0.047 \\
+\quad B & DA-P (proposed) & -133.2 [-261.5, -4.8] & 0.043 & 0.086 \\
 \addlinespace

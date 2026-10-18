@@ -309,7 +309,7 @@ def exp3_tables_figures():
     frames = [pd.read_csv(RES / f"exp3_{d}.csv") for d in DATASETS if (RES / f"exp3_{d}.csv").exists()]
     if not frames:
         return
-    df = add_flags(pd.concat(frames))
+    df = add_flags(pd.concat(frames, ignore_index=True))
     df["p_holm"] = np.nan
     for _, g in df.groupby(["dataset", "scheme", "method"]):
         if len(g) > 1:
@@ -342,6 +342,47 @@ def exp3_tables_figures():
                              f"{r.estimate:.{digits}f} [{r.ci_low:.{digits}f}, {r.ci_high:.{digits}f}] & {ps} & {phs} \\\\")
             lines.append(r"\addlinespace")
     (TAB / "exp3_main.tex").write_text("\n".join(lines) + "\n")
+    # Per-data-set detailed tables (appendix)
+    for ds in DATASETS:
+        block, keep = [], False
+        for ln in lines:
+            if ln.startswith("\\multicolumn{5}{@{}l}{\\textbf{"):
+                keep = DATASETS[ds] in ln
+                continue
+            if keep:
+                block.append(ln)
+        (TAB / f"exp3_main_{ds}.tex").write_text("\n".join(block) + "\n")
+
+    # Compact summary table (main text)
+    def pfmt(x):
+        return "--" if (x is None or np.isnan(x)) else ("$<$0.001" if x < 0.001 else f"{x:.3f}")
+
+    def pv(ds, comp, sch, m, col="pvalue"):
+        r = df[(df.dataset == ds) & (df.comparison == comp) & (df.scheme == sch) & (df.method == m)]
+        return r.iloc[0][col] if len(r) else np.nan
+
+    lines = []
+    for ds in DATASETS:
+        if df[df.dataset == ds].empty:
+            continue
+        lines.append(f"\\multicolumn{{9}}{{@{{}}l}}{{\\textbf{{{DATASETS[ds]}}}}} \\\\")
+        for comp in COMPARISONS:
+            for k, sch in enumerate(["random", "blocked", "forward"]):
+                ref = "nadeau_bengio" if sch == "random" else "da_p"
+                r = df[(df.dataset == ds) & (df.comparison == comp) & (df.scheme == sch) & (df.method == ref)]
+                if r.empty:
+                    continue
+                r = r.iloc[0]
+                digits = 4 if abs(r.estimate) < 0.1 else (2 if abs(r.estimate) < 10 else 1)
+                name = {"xgb_vs_rf": "XGB--RF", "xgb_vs_linear": "XGB--Lin", "rf_vs_linear": "RF--Lin"}[comp] if k == 0 else ""
+                cells = [name, SCHEME[sch], f"{r.estimate:.{digits}f} [{r.ci_low:.{digits}f}, {r.ci_high:.{digits}f}]",
+                         pfmt(pv(ds, comp, sch, "paired_t")), pfmt(pv(ds, comp, sch, "iid_bootstrap")),
+                         pfmt(pv(ds, comp, sch, "block_bootstrap")),
+                         pfmt(pv(ds, comp, sch, "hering_genton")), pfmt(pv(ds, comp, sch, "da_p")),
+                         pfmt(pv(ds, comp, sch, "da_p", "p_holm"))]
+                lines.append(" & ".join(cells) + " \\\\")
+        lines.append(r"\addlinespace")
+    (TAB / "exp3_compact.tex").write_text("\n".join(lines) + "\n")
 
     # Diagnostics of the proposed procedure
     lines = []
@@ -391,7 +432,7 @@ def exp3_tables_figures():
                 ax.text(1.02, 0.5, DATASETS[ds].split(" (")[0], transform=ax.transAxes, rotation=270,
                         va="center", ha="left", fontsize=7.5, color=MUTED)
     for ax in axes[-1]:
-        ax.set_xlabel("Loss differential (A $-$ B); 95% CI")
+        ax.set_xlabel("$\\hat\\Delta$ (A $-$ B), 95% CI")
     fig.tight_layout()
     fig.savefig(FIG / "exp3_forest.pdf")
     plt.close(fig)
