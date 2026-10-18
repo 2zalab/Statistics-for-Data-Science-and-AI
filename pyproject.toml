@@ -9,7 +9,7 @@ description = "Dependence-aware inference for comparing machine learning models 
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Isaac Touza", email = "isaac_touza@outlook.fr" }]
+authors = [{ name = "Isaac Touza", email = "isaac_touza@outlook.fr" }, { name = "Baudoin Nguimeya Tsofack", email = "baudoin.nguimeya@facsciences-uy1.cm" }]
 dependencies = [
     "numpy>=1.26",
     "scipy>=1.11",

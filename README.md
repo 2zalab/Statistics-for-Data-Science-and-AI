@@ -3,7 +3,7 @@
 Code, data and manuscript for the paper
 
 > **Are Machine Learning Improvements Statistically Real? Dependence-Aware Inference for Reliable Model Comparison on Spatiotemporal Data**
-> Isaac Touza, University of Maroua.
+> Isaac Touza (University of Maroua) and Baudoin Nguimeya Tsofack (University of Yaoundé I).
 > Prepared for the *Special Issue on Statistics for Data Science and AI*, International Journal of Data Science and Analytics (Springer Nature).
 
 When two machine learning models are compared on spatially or temporally
