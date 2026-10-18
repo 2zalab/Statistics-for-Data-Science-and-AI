@@ -66,9 +66,9 @@
 	\orgname{University of Maroua},
 	\orgaddress{\street{P.O. Box 46}, \city{Maroua}, \country{Cameroon}}}
 
-\affil[3]{\orgdiv{Department of Computer Science, Faculty of Sciences},
+\affil[3]{\orgdiv{Department of Computer Science},
 	\orgname{University of Yaound\'e I},
-	\orgaddress{\city{Yaound\'e}, \country{Cameroon}}}
+	\orgaddress{\street{P.O. Box 337}, \city{Yaound\'e}, \country{Cameroon}}}
 
 \abstract{Claims that one machine learning model outperforms another usually rest on cross-validated scores and a test that assumes independent observations. On spatial and temporal data this assumption fails twice: random cross-validation leaks information between neighbouring observations, and the errors of the compared models are themselves dependent. We study the second problem for learning procedures that are refitted on each fold. We cast model comparison as inference on the mean of a dependent field of loss differentials with correlated training effects, derive the bias of the paired $t$-test on fold scores and of a combined variance estimator, and propose DA-P, a test computed from one blocked cross-validation run that adds to a variogram-based test-sampling variance a training-variance term and a Satterthwaite reference distribution, with a three-way decision rule that flags conclusions depending on the unverifiable correlation of training effects. In simulations with exact truth, conventional procedures reject a true null in up to $80\%$ of replicates. DA-P remains at or below the nominal level with fixed error fields and weakly correlated training effects, including under several misspecifications, and is the best procedure with refitted XGBoost learners, where a spatial prediction comparison test fails; it still rejects about $10\%$ of true nulls in that setting under strong dependence, a limit we trace to training effects shared by all folds. On weather, pedestrian and yield-monitor data, six of nine conclusions depend on the validation design or the test. Python code is provided.}
 
