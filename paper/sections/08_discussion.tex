@@ -16,7 +16,7 @@ Switching to blocked cross-validation fixes the estimand but not, by itself, the
 
 \subsection{Recommendations}
 
-From these results we derive the following recommendations for comparing two models on spatio-temporal data.
+From these results we derive the following recommendations for comparing two models on spatiotemporal data.
 \begin{enumerate}
 \item \emph{Define the estimand first.} Choose the validation design to match the intended use of the model: random cross-validation answers an interpolation question at the scale of single observations, blocked cross-validation an interpolation question at the scale of the blocks, and forward chaining a forecasting question.
 \item \emph{Never rely on procedures that treat observations as independent} (i.i.d. bootstrap, $z$- or $t$-tests on pooled observations, McNemar's test) or on the paired $t$-test with random folds. Under dependence, the corrected resampled $t$-test is not a remedy either.

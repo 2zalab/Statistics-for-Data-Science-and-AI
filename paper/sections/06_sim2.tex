@@ -1,10 +1,10 @@
-\section{Simulation study II: learners on spatio-temporal data}\label{sec:sim2}
+\section{Simulation study II: learners on spatiotemporal data}\label{sec:sim2}
 
 The second study reproduces the full pipeline of an applied comparison: data generation, model fitting by cross-validation and testing. The difficulty in such a study is to know the truth. We obtain an exact null by exchangeability.
 
 \subsection{Design}
 
-\paragraph{Data.} On a $10\times10$ grid observed at $20$ time points ($n=2000$), three covariates $x_1,x_2,x_3$ and a latent residual $w$ are independent spatio-temporal fields with the dependence levels of Section~\ref{sec:sim1}. The response is
+\paragraph{Data.} On a $10\times10$ grid observed at $20$ time points ($n=2000$), three covariates $x_1,x_2,x_3$ and a latent residual $w$ are independent spatiotemporal fields with the dependence levels of Section~\ref{sec:sim1}. The response is
 \[
 y=g(x_1)+(1-\gamma)\,g(x_2)+x_3+w+\epsilon,\qquad g(v)=\sin(2v)+v,\qquad \epsilon\sim N(0,0.5^2)\ \text{i.i.d.}
 \]
@@ -16,7 +16,7 @@ y=g(x_1)+(1-\gamma)\,g(x_2)+x_3+w+\epsilon,\qquad g(v)=\sin(2v)+v,\qquad \epsilo
 
 \subsection{Results}
 
-\paragraph{Random cross-validation.} The left panel of Fig.~\ref{fig:exp2size} and the upper part of Table~\ref{tab:exp2} show that the conventional pipeline fails as soon as the data are dependent. With random $5$-fold cross-validation, the paired $t$-test rejects a true null in $15\%$ of replicates under moderate and $29\%$ under strong dependence, and the i.i.d. bootstrap in $24\%$ and $40\%$. The corrected resampled $t$-test of Nadeau and Bengio is well calibrated without dependence ($3.7\%$) and under weak dependence ($5.7\%$), as designed, but not beyond ($16\%$ and $33\%$): its correction accounts for overlapping training sets, not for dependent test observations. Note also that even without spatio-temporal dependence the paired $t$-test rejects $9\%$ of true nulls, the problem identified by Dietterich~\cite{dietterich1998}.
+\paragraph{Random cross-validation.} The left panel of Fig.~\ref{fig:exp2size} and the upper part of Table~\ref{tab:exp2} show that the conventional pipeline fails as soon as the data are dependent. With random $5$-fold cross-validation, the paired $t$-test rejects a true null in $15\%$ of replicates under moderate and $29\%$ under strong dependence, and the i.i.d. bootstrap in $24\%$ and $40\%$. The corrected resampled $t$-test of Nadeau and Bengio is well calibrated without dependence ($3.7\%$) and under weak dependence ($5.7\%$), as designed, but not beyond ($16\%$ and $33\%$): its correction accounts for overlapping training sets, not for dependent test observations. Note also that even without spatiotemporal dependence the paired $t$-test rejects $9\%$ of true nulls, the problem identified by Dietterich~\cite{dietterich1998}.
 
 \paragraph{The estimand changes with the validation design.} Random cross-validation does not only produce invalid tests; it also estimates a different quantity. Table~\ref{tab:exp2est} reports the average estimated gain of model $A$ under both designs. Because both models can exploit the coordinates to interpolate between nearby training observations, random cross-validation attenuates the advantage conferred by the more informative covariate, by about $30\%$ under moderate and $50\%$ under strong dependence ($-0.53$ instead of $-0.80$, and $-0.30$ instead of $-0.60$, for $\gamma=0.2$). A gain measured by random cross-validation is thus not a conservative estimate of the gain at new locations and times: it is an estimate of a different, interpolation-based, quantity.
 

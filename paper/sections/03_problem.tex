@@ -2,9 +2,9 @@
 
 \subsection{Setting and estimand}
 
-We observe $n$ labelled examples $z_i=(x_i,y_i)$, $i=1,\dots,n$, each attached to a spatial location $s_i\in\mathbb{R}^p$ (typically $p=2$) and a time $t_i\in\mathbb{R}$; either component may be absent. Two learning procedures $A$ and $B$ (for instance, XGBoost and a random forest, or one learner with two feature sets) are to be compared with a loss $\ell$, such as the squared error or the logarithmic loss~\cite{gneiting2007}.
+We observe $n$ labelled examples $z_i=(x_i,y_i)$, $i=1,\dots,n$, each attached to a spatial location $s_i\in\mathbb{R}^p$ (typically $p=2$) and a time $t_i\in\mathbb{R}$; either component may be absent. Two learning procedures $A$ and $B$ (for instance, XGBoost and a random forest, or one learner with two feature sets) are to be compared using a loss $\ell$, such as the squared error or the logarithmic loss~\cite{gneiting2007}.
 
-The observations are grouped into $G$ spatio-temporal blocks (for instance, square tiles crossed with time windows) and the blocks are allocated to $K$ folds $F_1,\dots,F_K$, with $n_k=|F_k|$. For each fold $k$, both learners are fitted on a training set $T_k\subseteq\{i\notin F_k\}$, from which observations within a buffer distance of the fold may be removed, and are used to predict the observations of $F_k$. With $k(i)$ the fold of observation $i$, the out-of-fold \emph{loss differential} is
+The observations are grouped into $G$ spatiotemporal blocks (for instance, square tiles crossed with time windows), and the blocks are allocated to $K$ folds $F_1,\dots,F_K$, with $n_k=|F_k|$. For each fold $k$, both learners are fitted on a training set $T_k\subseteq\{i\notin F_k\}$, from which observations within a buffer distance of the fold may be removed, and they are then used to predict the observations of $F_k$. With $k(i)$ the fold of observation $i$, the out-of-fold \emph{loss differential} is
 \begin{equation}\label{eq:d}
 d_i=\ell\bigl(y_i,\hat f_A^{(k(i))}(x_i)\bigr)-\ell\bigl(y_i,\hat f_B^{(k(i))}(x_i)\bigr),
 \end{equation}
@@ -14,11 +14,11 @@ so that negative values favour $A$, and the cross-validated estimate of the gain
 The \emph{expected cross-validated loss differential} is $\Delta_n=\E[\hat\Delta]$, where the expectation is over the data-generating process and the randomness of the learners. It is the difference in expected loss between the two learning procedures, trained on about $n(1-1/K)$ observations, when predicting observations that are separated from the training data as prescribed by the blocking design.
 \end{definition}
 
-The estimand depends on the validation design, as stressed by Bates et al.~\cite{bates2024} for i.i.d. data and by the spatial validation literature~\cite{roberts2017,wadoux2021}: with random folds it describes interpolation, with spatial blocks it describes extrapolation to new areas. We take the design as given, chosen to match the intended use of the model, and focus on testing $H_0:\Delta_n=0$ against $H_1:\Delta_n\neq0$ and on confidence intervals for $\Delta_n$.
+The estimand depends on the validation design, as stressed by Bates et al.~\cite{bates2024} for i.i.d. data and by the spatial validation literature~\cite{roberts2017,wadoux2021}: with random folds it describes interpolation, whereas with spatial blocks it describes extrapolation to new areas. We take the design as given, chosen to match the intended use of the model, and we focus on testing $H_0:\Delta_n=0$ against $H_1:\Delta_n\neq0$ and on confidence intervals for $\Delta_n$.
 
 \subsection{A working model for loss differentials}
 
-The difficulty is that the $d_i$ are dependent for two distinct reasons. We make them explicit with the following decomposition.
+The difficulty is that the $d_i$ are dependent for two distinct reasons, which we make explicit with the following decomposition.
 
 \begin{definition}[Working model]\label{def:model}
 \begin{equation}\label{eq:model}
@@ -27,7 +27,7 @@ d_i=\Delta_n+\eta_{k(i)}+u_i ,
 where $(\eta_1,\dots,\eta_K)$ are exchangeable fold effects with $\Var(\eta_k)=\tau^2$ and $\operatorname{Corr}(\eta_k,\eta_l)=\rho$ for $k\neq l$, independent of $u$, and $u=(u_i)$ is a zero-mean, second-order stationary field with $\Cov(u_i,u_j)=C(s_i-s_j,t_i-t_j)$.
 \end{definition}
 
-The fold effect $\eta_k$ captures the variability induced by fitting the two learners on the training set $T_k$: an unlucky training sample, a different random seed or a different tree structure shifts the losses of all observations of the fold in the same direction. Because the training sets of different folds share a fraction $(K-2)/(K-1)$ of their observations, the fold effects are positively correlated. The field $u$ captures test-sampling variability; it inherits the spatial and temporal autocorrelation of the residuals of both models, which is substantial whenever both models miss a spatially structured signal. Under~\eqref{eq:model},
+The fold effect $\eta_k$ captures the variability induced by fitting the two learners on the training set $T_k$: an unlucky training sample, a different random seed or a different tree structure shifts the losses of all observations of the fold in the same direction. Because the training sets of different folds share a fraction $(K-2)/(K-1)$ of their observations, the fold effects are positively correlated. The field $u$ captures the test-sampling variability; it inherits the spatial and temporal autocorrelation of the residuals of both models, which is substantial whenever both models miss a spatially structured signal. Under~\eqref{eq:model},
 \begin{equation}\label{eq:var}
 \Var(\hat\Delta)=\underbrace{\frac{1}{n^2}\sum_{i=1}^n\sum_{j=1}^n C(s_i-s_j,t_i-t_j)}_{V_u}+\underbrace{\tau^2\Bigl[\sum_k\frac{n_k^2}{n^2}+\rho\sum_{k\neq l}\frac{n_kn_l}{n^2}\Bigr]}_{V_\eta}.
 \end{equation}
@@ -36,13 +36,13 @@ With equal fold sizes, $V_\eta=\tau^2[1/K+\rho(1-1/K)]$. Writing $V_u=\sigma_u^2
 \subsection{Why conventional procedures fail}
 
 \paragraph{Procedures that assume independent observations.}
-The i.i.d. bootstrap of the $d_i$, the $z$-test on the $d_i$ and McNemar-type tests estimate $\sigma^2/n$ and therefore ignore both terms of~\eqref{eq:var} beyond the diagonal. Their variance is too small by the design-effect factor $n/n_{\mathrm{eff}}$, and by $V_\eta$ even without spatial dependence.
+The i.i.d. bootstrap of the $d_i$, the $z$-test on the $d_i$ and McNemar-type tests estimate $\sigma^2/n$ and therefore ignore all off-diagonal terms of~\eqref{eq:var}. Their variance is too small by the design-effect factor $n/n_{\mathrm{eff}}$, and it misses $V_\eta$ even in the absence of spatial dependence.
 
 \paragraph{The paired $t$-test on fold scores.}
 The most common procedure computes the $K$ fold means $m_k=n_k^{-1}\sum_{i\in F_k}d_i$ and refers $\bar m/(s_m/\sqrt K)$ to a $t_{K-1}$ distribution, with $s_m^2$ the sample variance of the $m_k$. Its weakness is captured by the following identity.
 
 \begin{proposition}\label{prop:pairedt}
-Let $m_1,\dots,m_K$ have common mean, average variance $\bar v=K^{-1}\sum_k\Var(m_k)$ and average pairwise covariance $\bar c=[K(K-1)]^{-1}\sum_{k\neq l}\Cov(m_k,m_l)$. Then
+Let $m_1,\dots,m_K$ have a common mean, average variance $\bar v=K^{-1}\sum_k\Var(m_k)$ and average pairwise covariance $\bar c=[K(K-1)]^{-1}\sum_{k\neq l}\Cov(m_k,m_l)$. Then
 \[
 \E\Bigl[\frac{s_m^2}{K}\Bigr]-\Var(\bar m)=-\bar c .
 \]
@@ -52,13 +52,13 @@ Let $m_1,\dots,m_K$ have common mean, average variance $\bar v=K^{-1}\sum_k\Var(
 $\Var(\bar m)=K^{-2}\bigl[\sum_k\Var(m_k)+\sum_{k\neq l}\Cov(m_k,m_l)\bigr]=[\bar v+(K-1)\bar c]/K$. Since the means are equal, $\E\sum_k(m_k-\bar m)^2=\sum_k\Var(m_k)-K\Var(\bar m)=(K-1)(\bar v-\bar c)$, hence $\E[s_m^2]/K=(\bar v-\bar c)/K$. Subtracting gives the result.
 \end{proof}
 
-The paired $t$-test is therefore valid only if fold means are uncorrelated. Under random $K$-fold cross-validation of dependent data, every fold is spread over the whole domain, the folds share the same spatial and temporal fluctuations, and $\bar c$ is close to $\Var(\bar m)$ itself: the test then estimates only the small idiosyncratic part of the variance. Overlapping training sets add $\rho\tau^2>0$ to $\bar c$, which is the mechanism identified by Dietterich~\cite{dietterich1998} and corrected by Nadeau and Bengio~\cite{nadeau2003} for i.i.d. data. Blocking reduces the spatial part of $\bar c$, but adjacent blocks of different folds remain correlated, and with $K=5$ the test has only four degrees of freedom.
+The paired $t$-test is therefore valid only if the fold means are uncorrelated. Under random $K$-fold cross-validation of dependent data, every fold is spread over the whole domain, the folds share the same spatial and temporal fluctuations, and $\bar c$ is close to $\Var(\bar m)$ itself, so that the test estimates only the small idiosyncratic part of the variance. Overlapping training sets add $\rho\tau^2>0$ to $\bar c$, which is the mechanism identified by Dietterich~\cite{dietterich1998} and corrected by Nadeau and Bengio~\cite{nadeau2003} for i.i.d. data. Blocking reduces the spatial part of $\bar c$, but adjacent blocks of different folds remain correlated, and with $K=5$ the test has only four degrees of freedom.
 
 \paragraph{Cluster methods.}
-The block bootstrap and the random-intercept linear mixed model (LMM) treat the $G$ blocks as independent clusters. They capture all within-block covariance, including the fold effects of~\eqref{eq:model}, but ignore covariance between neighbouring blocks, which is non-negligible when the dependence range is comparable with the block size, and they ignore the correlation $\rho$ of fold effects.
+The block bootstrap and the random-intercept linear mixed model (LMM) treat the $G$ blocks as independent clusters. They capture all within-block covariance, including the fold effects of~\eqref{eq:model}, but they ignore the covariance between neighbouring blocks, which is non-negligible when the dependence range is comparable with the block size, as well as the correlation $\rho$ of fold effects.
 
 \paragraph{Parametric spatial comparison.}
 The test of Hering and Genton~\cite{hering2011}, which we extend to space--time with a separable exponential covariance fitted to the spatial and temporal variograms of the centred differentials, estimates $V_u$ from a parametric model. It is designed for fixed predictors and therefore omits $V_\eta$, and its validity depends on the adequacy of the covariance model.
 
 \paragraph{Time-only HAC.}
-Applying the Diebold--Mariano test with a Newey--West variance separately to the series of each site, as is often done for panels of forecasts, handles temporal dependence but ignores the correlation between sites at the same time and the fold effects.
+Applying the Diebold--Mariano test with a Newey--West variance separately to the series of each site, as is often done for panels of forecasts, accounts for temporal dependence but ignores both the correlation between sites at the same time and the fold effects.
