@@ -120,4 +120,41 @@ Scenario & Paired $t$ & Block bs & LMM & H--G & DA-K & DA-P & Cov. & Power & Pow
 \end{tabular}
 \end{table}
 
-%%RULESECTION%%
+\subsection{Range of dependence and the decision rule}\label{sec:sim1rule}
+
+To examine how the procedures behave as the dependence range grows relative to the domain, and whether the range ratio can serve as a validity guard, we ran the design of this section with practical ranges $3a\in\{1.5,3,4.5,6,9,12,18\}$ grid units in space and the same values in time steps ($\phi=e^{-1/a}$), with $800$ null replicates per range ($300$ from a pilot run and $500$ from a confirmatory run on different seeds). Table~\ref{tab:range} shows that DA-P remains at or below the nominal level over the whole range ($1.8$--$3.4\%$), as does Hering--Genton ($2.1$--$5.5\%$), whereas the rejection rates of the paired $t$-test ($5.9\%$ to $25.6\%$), of the block bootstrap ($9.5\%$ to $38.9\%$) and of DA-K ($4.5\%$ to $14.4\%$) increase steadily with the range. Figure~\ref{fig:rule} pools all null replicates of the simulation studies and plots the rejection rate against the estimated range ratio: in Experiment~1 designs the rejection rate of DA-P does not increase with the range ratio, and in Experiment~2 its residual over-rejection is concentrated at intermediate ratios ($0.1$--$0.4$) rather than at large ones. A threshold on the range ratio, which we had intended to use to declare comparisons indeterminate, would therefore not improve the validity of DA-P; large range ratios signal low power (the size-adjusted power of every procedure is low at the strong level, Table~\ref{tab:exp1power}), not invalid inference.
+
+The rule~\eqref{eq:rule}, which requires significance under both $\rho_0=1/K$ and $\rho_0=0.5$, is evaluated in Table~\ref{tab:rule} on the main replicates of both experiments. Its rate of false rejections is at most $4.0\%$ in Experiment~1 and in the absence of or under weak dependence in Experiment~2, and $8.7\%$ under moderate and strong dependence in Experiment~2, against $10.0\%$ and $11.0\%$ for DA-P alone. The price is that $0$--$11\%$ of the comparisons with a genuine gap are classified as indeterminate instead of significant. The rule therefore reduces, but does not eliminate, false claims of superiority in the most difficult setting; we discuss why in Section~\ref{sec:sim2}.
+
+\begin{table}[t]
+\caption{Rejection rate (\%) of a true null as a function of the practical range of dependence ($800$ replicates per row; domain of $12$ sites per side and $24$ time steps), with the median estimated range ratio of DA-P.}\label{tab:range}
+\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}rrrrrrrr@{}}
+\toprule
+Range & Range ratio & $n$ & Paired $t$ & Block bs & H--G & DA-K & DA-P\\
+\midrule
+\tabinput{tables/exp1b_range.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Three-way decision rule~\eqref{eq:rule}: percentage of replicates classified as ``reject'' (significant under $\rho_0=1/K$ and $\rho_0=0.5$) and as ``indeterminate'' (significant under $\rho_0=1/K$ only), under the null and under an alternative.}\label{tab:rule}
+\centering\footnotesize\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+& \multicolumn{2}{c}{Null (\%)} & \multicolumn{2}{c}{Alternative (\%)}\\
+\cmidrule(lr){2-3}\cmidrule(l){4-5}
+Dependence & Reject & Indeterminate & Reject & Indeterminate\\
+\midrule
+\tabinput{tables/rule_validation.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/rule.pdf}
+\caption{Rejection rate of a true null against the estimated range ratio of DA-P, pooling all null replicates of (a) Experiment~1 and its range grid and (b) Experiment~2 (blocked CV). Bins with fewer than $40$ replicates are omitted. Dashed line: nominal level.}\label{fig:rule}
+\end{figure}
+

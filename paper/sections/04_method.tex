@@ -24,7 +24,7 @@ are computed over distance and lag bins $I_h$, $I_\ell$ up to a maximum lag (by 
 \hat g_S(h)=\frac{\hat c_{1,S}}{\hat c_{0,S}+\hat c_{1,S}}\,e^{-h/\hat a_S}\ (h>0),\qquad
 \hat g_T(\ell)=\frac{\hat c_{1,T}}{\hat c_{0,T}+\hat c_{1,T}}\,e^{-\ell/\hat a_T}\ (\ell>0),
 \end{equation}
-with $\hat g_S(0)=\hat g_T(0)=1$, and the \emph{practical ranges} $\hat r=3\hat a$, the distances at which the correlation of the structured component falls to $5\%$ (set to zero when the structured part explains less than $5\%$ of the sill). The \emph{range ratio} $\max_q\hat r_q/L_q$, the largest practical range relative to the extent $L_q$ of the domain along the same axis, measures how many effectively independent regions the sample contains; it is the basis of the decision rule of Section~\ref{sec:rule}.
+with $\hat g_S(0)=\hat g_T(0)=1$, and the \emph{practical ranges} $\hat r=3\hat a$, the distances at which the correlation of the structured component falls to $5\%$ (set to zero when the structured part explains less than $5\%$ of the sill). The \emph{range ratio} $\max_q\hat r_q/L_q$, the largest practical range relative to the extent $L_q$ of the domain along the same axis, measures how many effectively independent regions the sample contains.
 
 \subsection{Test-sampling variance}
 
@@ -89,27 +89,30 @@ When $\hat\tau^2_{\mathrm{raw}}\le0$ the training term vanishes and $\hat\nu=\nu
 
 \subsection{A three-way decision rule}\label{sec:rule}
 
-Proposition~\ref{prop:bias} shows that no correction of the variance can be exact when the dependence range is comparable to the blocks and to the study domain: $c_u$, $\beta_u$ and $\bar\beta$ are then all non-negligible and are not identifiable from one sample, and the variogram itself cannot be estimated beyond the extent of the domain. We therefore attach to DA-P (and DA-K) an explicit decision rule with three outcomes:
+Proposition~\ref{prop:bias} identifies the assumed training correlation $\rho_0$ as the one input of the procedure that cannot be checked from the data, and the one whose misspecification makes the test anti-conservative. We therefore attach to DA-P a decision rule with three outcomes that makes the dependence of the conclusion on $\rho_0$ explicit:
 \begin{equation}\label{eq:rule}
 \text{decision}=\begin{cases}
-\text{indeterminate} & \text{if } \max_q \hat r_q/L_q>r^\ast,\\
-\text{reject } H_0 & \text{if } \max_q \hat r_q/L_q\le r^\ast\text{ and } p<\alpha,\\
-\text{do not reject } H_0 & \text{otherwise,}
+\text{reject } H_0 & \text{if } p(\rho_0=1/K)<\alpha \text{ and } p(\rho_0=0.5)<\alpha,\\
+\text{indeterminate} & \text{if } p(\rho_0=1/K)<\alpha \le p(\rho_0=0.5),\\
+\text{do not reject } H_0 & \text{otherwise.}
 \end{cases}
 \end{equation}
-where $\hat r_q/L_q$ is the estimated practical range relative to the extent of the domain along axis $q$ (the range ratio). An ``indeterminate'' outcome states that the sample contains too few effectively independent regions for the comparison to be resolved, whatever the observed difference. The threshold $r^\ast=\rstar$ was chosen in a pilot study on separate random seeds as the largest value for which the conditional rejection rate of a true null stayed within the Monte Carlo band of the nominal level, and was then validated on new seeds and on the other experiments (Section~\ref{sec:sim1rule}).
+An ``indeterminate'' outcome states that the apparent improvement is significant only if the training effects of different folds are assumed to be weakly correlated, and would not survive a correlation of $0.5$; it is not counted as evidence of superiority. Because $\zeta_K(\rho_0)$ is increasing in $\rho_0$, the second $p$-value is never smaller than the first.
+
+We also report the range ratio $\max_q\hat r_q/L_q$ and the effective sample size $\hat n_{\mathrm{eff}}$ as diagnostics of the \emph{information} available for the comparison. We initially intended to declare comparisons indeterminate when the range ratio exceeded a threshold, as suggested by the behaviour of DA-K; the simulations of Section~\ref{sec:sim1rule} show that, for DA-P, large range ratios reduce power but do not cause over-rejection, while the residual over-rejection of Experiment~2 occurs at intermediate ratios. A threshold on the range ratio would therefore not protect the validity of DA-P, and we do not use one.
 
 \begin{algorithm}[t]
 \caption{DA-P test for $H_0:\Delta_n=0$}\label{alg:dahac}
 \begin{algorithmic}[1]
-\Require loss differentials $d_i$, folds $k(i)$, coordinates $(s_i,t_i)$, level $\alpha$, threshold $r^\ast$
+\Require loss differentials $d_i$, folds $k(i)$, coordinates $(s_i,t_i)$, level $\alpha$
 \State $m_k\gets$ mean of $d_i$ over $F_k$; \ $\tilde u_i\gets d_i-m_{k(i)}$; \ $\hat\Delta\gets n^{-1}\sum_i d_i$
 \State Fit exponential models to the spatial and temporal empirical variograms of $\tilde u$; correlations $\hat g_S,\hat g_T$ and ranges $\hat r_S,\hat r_T$
 \State Compute $\hat V_u$ and $\hat V_1,\dots,\hat V_K$ by~\eqref{eq:vu} \Comment{DA-K: kernel~\eqref{eq:kernel} instead}
 \State $\hat\tau^2\gets\max\{0,s_m^2-K^{-1}\sum_k\hat V_k\}$; \ $\hat V\gets\hat V_u+\zeta_K(\rho_0)\hat\tau^2$ \Comment{default $\rho_0=1/K$}
 \State Compute $\hat n_{\mathrm{eff}}$, $\nu_u$ and $\hat\nu$ by~\eqref{eq:df}, and the range ratio $\max_q\hat r_q/L_q$
 \State $p\gets2\,\Pr(t_{\hat\nu}>|\hat\Delta|/\sqrt{\hat V})$; interval $\hat\Delta\pm t_{\hat\nu,1-\alpha/2}\sqrt{\hat V}$
-\State \Return $p$, the interval, the diagnostics and the decision~\eqref{eq:rule}: indeterminate if $\max_q\hat r_q/L_q>r^\ast$
+\State Repeat lines 4--6 with $\rho_0=0.5$
+\State \Return $p$, the interval, the diagnostics $(\hat r_S,\hat r_T,\hat n_{\mathrm{eff}},\max_q\hat r_q/L_q)$ and the decision~\eqref{eq:rule}
 \end{algorithmic}
 \end{algorithm}
 

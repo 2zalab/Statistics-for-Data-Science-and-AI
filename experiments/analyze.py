@@ -507,63 +507,77 @@ def exp1b_tables(df1=None, df2=None):
         (TAB / "exp1b_robust.tex").write_text("\n".join(lines) + "\n")
 
     fp, fm = RES / "exp1b_range_pilot.csv", RES / "exp1b_range.csv"
-    if fp.exists() and fm.exists():
-        pilot = add_flags(pd.read_csv(fp))
-        calib = [pilot[pilot.method == "da_p"]]
-        if df2 is not None:  # even replicates of Experiment 2 are used for calibration, odd ones for validation
-            b = df2[(df2.scheme == "blocked") & (df2.gamma == 0) & (df2.method == "da_p")]
-            calib.append(b[b.rep % 2 == 0])
-        rstar = choose_threshold(pd.concat(calib, ignore_index=True))
-        out["rstar"] = rstar
-        RSTAR[0] = rstar
-        (TAB / "rstar.tex").write_text(f"\\renewcommand{{\\rstar}}{{{rstar:g}}}\n")
+    if fm.exists():
         main = add_flags(pd.read_csv(fm))
-        lab = lambda g: f"{3 * float(g[1:]):g}"
-        lines = rule_rows(main, None, "scenario", lab, rstar)
-        (TAB / "exp1b_range.tex").write_text("\n".join(lines) + "\n")
-        # pooled validation on the main experiments
+        if fp.exists():
+            main = pd.concat([add_flags(pd.read_csv(fp)).assign(src="pilot"), main.assign(src="main")],
+                             ignore_index=True)
         lines = []
-        if df1 is not None:
-            n1 = df1[df1.delta == 0]
-            lines += [r"\multicolumn{6}{@{}l}{\emph{Experiment 1 (alternative: $\delta=0.2$)}}\\"]
-            lines += rule_rows(n1, df1[df1.delta == 0.2], "level", str.capitalize, rstar)
-        if df2 is not None:
-            b = df2[(df2.scheme == "blocked") & (df2.rep % 2 == 1)]
-            lines += [r"\multicolumn{6}{@{}l}{\emph{Experiment 2, odd replicates (alternative: $\gamma=0.2$)}}\\"]
-            lines += rule_rows(b[b.gamma == 0], b[b.gamma == 0.2], "level", str.capitalize, rstar)
+        for sc in sorted(main.scenario.unique(), key=lambda g: float(g[1:])):
+            sub = main[main.scenario == sc]
+            dp = sub[sub.method == "da_p"]
+            cells = [f"{3 * float(sc[1:]):g}", f"{dp.info_range_ratio.median():.2f}", f"{len(dp)}"]
+            cells += [f"{100 * sub[sub.method == m].reject.mean():.1f}"
+                      for m in ["paired_t", "block_bootstrap", "hering_genton", "da_hac", "da_p"]]
+            lines.append(" & ".join(cells) + r" \\")
+        (TAB / "exp1b_range.tex").write_text("\n".join(lines) + "\n")
+
+    # Three-way rule based on sensitivity to the assumed training correlation:
+    # reject if significant with rho0 = 1/K and with rho0 = 0.5; indeterminate if only with rho0 = 1/K.
+    def three_way(df, key, alt_value):
+        w = df[df.method.isin(["da_p", "da_p_rho0.5"])].pivot_table(index=["level", key, "rep"],
+                                                                    columns="method", values="pvalue")
+        rej = w["da_p_rho0.5"] < ALPHA
+        ind = (w["da_p"] < ALPHA) & ~rej
+        g = pd.DataFrame({"rej": rej, "ind": ind}).groupby(level=[0, 1]).mean() * 100
+        rows = []
+        for lvl in LEVELS:
+            rows.append(f"{lvl.capitalize()} & {g.loc[(lvl, 0.0), 'rej']:.1f} & {g.loc[(lvl, 0.0), 'ind']:.1f} & "
+                        f"{g.loc[(lvl, alt_value), 'rej']:.0f} & {g.loc[(lvl, alt_value), 'ind']:.0f} \\\\")
+        return rows
+    lines = []
+    if df1 is not None and "da_p_rho0.5" in set(df1.method):
+        lines += [r"\multicolumn{5}{@{}l}{\emph{Experiment 1 (alternative $\delta=0.2$)}}\\"]
+        lines += three_way(df1, "delta", 0.2)
+    if df2 is not None and "da_p_rho0.5" in set(df2.method):
+        lines += [r"\multicolumn{5}{@{}l}{\emph{Experiment 2, blocked CV (alternative $\gamma=0.2$)}}\\"]
+        lines += three_way(df2[df2.scheme == "blocked"], "gamma", 0.2)
+    if lines:
         (TAB / "rule_validation.tex").write_text("\n".join(lines) + "\n")
 
-        # Figure: null rejection rate of DA-HAC and paired t against the range ratio
-        pooled = [main.assign(src="1b")]
-        if df1 is not None:
-            pooled.append(df1[df1.delta == 0].assign(src="1"))
-        if df2 is not None:
-            pooled.append(df2[(df2.scheme == "blocked") & (df2.gamma == 0)].assign(src="2"))
+    # Figure: null rejection rate against the estimated range ratio, pooled over all null replicates
+    pooled = []
+    if fm.exists():
+        pooled.append(main.assign(src2="1b"))
+    if df1 is not None:
+        pooled.append(df1[df1.delta == 0].assign(src2="1"))
+    if df2 is not None:
+        pooled.append(df2[(df2.scheme == "blocked") & (df2.gamma == 0)].assign(src2="2"))
+    if pooled:
         allnull = pd.concat(pooled, ignore_index=True)
-        for c in ("scenario", "level"):
+        for c in ("scenario", "level", "src"):
             if c in allnull:
                 allnull[c] = allnull[c].fillna("")
-        dah = allnull[allnull.method == "da_p"].copy()
-        keycols = ["src", "scenario", "level", "rep"]
-        keycols = [c for c in keycols if c in allnull]
-        rr = dah.set_index(keycols).info_range_ratio
-        bins = [0, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.7]
-        fig, ax = plt.subplots(figsize=(4.6, 2.6))
-        for m in ["paired_t", "block_bootstrap", "hering_genton", "da_p"]:
-            sub = allnull[allnull.method == m].set_index(keycols)
-            sub = sub.assign(rr=rr.reindex(sub.index).values)
-            sub["bin"] = pd.cut(sub.rr, bins)
-            g = sub.groupby("bin", observed=True).reject.agg(["mean", "size"])
-            g = g[g["size"] >= 50]
-            x = [iv.mid for iv in g.index]
-            c, mk = STYLE[m]
-            ax.plot(x, g["mean"], color=c, marker=mk, lw=2.2 if m == "da_p" else 1.4, label=PLAIN[m])
-        ax.axhline(ALPHA, color=MUTED, lw=0.8, ls="--")
-        ax.axvline(rstar, color=INK, lw=0.8, ls=":")
-        ax.text(rstar, ax.get_ylim()[1] * 0.97, f" $r^*={rstar:g}$", va="top", fontsize=7.5, color=INK)
-        ax.set_xlabel("Estimated range ratio $\\max_q b_q/L_q$ (binned)")
-        ax.set_ylabel("Rejection rate of a true null")
-        ax.legend(fontsize=7, loc="upper left")
+        keycols = [c for c in ["src2", "src", "scenario", "level", "rep"] if c in allnull]
+        rr = allnull[allnull.method == "da_p"].set_index(keycols).info_range_ratio.fillna(0.0)
+        bins = [-0.01, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.45, 0.6, 5]
+        fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.6), sharey=True)
+        for ax, src, title in [(axes[0], ["1", "1b"], "(a) Experiment 1 designs"), (axes[1], ["2"], "(b) Experiment 2")]:
+            for m in ["paired_t", "block_bootstrap", "hering_genton", "da_p"]:
+                sub = allnull[(allnull.method == m) & allnull.src2.isin(src)].set_index(keycols)
+                sub = sub.assign(rr=rr.reindex(sub.index).values)
+                sub["bin"] = pd.cut(sub.rr, bins)
+                g = sub.groupby("bin", observed=True).reject.agg(["mean", "size"])
+                g = g[g["size"] >= 40]
+                x = [min(iv.mid, 0.75) for iv in g.index]
+                c, mk = STYLE[m]
+                ax.plot(x, g["mean"], color=c, marker=mk, lw=2.2 if m == "da_p" else 1.4, label=PLAIN[m])
+            ax.axhline(ALPHA, color=MUTED, lw=0.8, ls="--")
+            ax.set_title(title, loc="left", color=INK)
+            ax.set_xlabel("Estimated range ratio (binned)")
+        axes[0].set_ylabel("Rejection rate of a true null")
+        h, l = axes[0].get_legend_handles_labels()
+        fig.legend(h, l, loc="upper center", ncol=4, bbox_to_anchor=(0.5, -0.05), fontsize=7.5)
         fig.savefig(FIG / "rule.pdf")
         plt.close(fig)
     return out

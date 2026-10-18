@@ -3,3 +3,7 @@
 4800 replicates in 1211s -> /home/user/statistics-for-data-science-and-ai/results/exp1b_robust.csv
 2100 replicates in 699s -> /home/user/statistics-for-data-science-and-ai/results/exp1b_range_pilot.csv
 3500 replicates in 1146s -> /home/user/statistics-for-data-science-and-ai/results/exp1b_range.csv
+3000 replicates in 5343s -> /home/user/statistics-for-data-science-and-ai/results/exp2.csv
+nyc_weather xgb vs rf: 66s
+nyc_weather xgb vs linear: 88s
+nyc_weather rf vs linear: 142s

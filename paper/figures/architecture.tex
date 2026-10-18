@@ -55,7 +55,7 @@
 % ---------------- Stage 3: inference and diagnostics ----------------
 \node[box=cout, below=11mm of vt.south west, anchor=north west, text width=40mm] (v) {\textbf{Total variance}\\[1pt] $\hat V=\hat V_u+\zeta_K\hat\tau^2$};
 \node[box=cout, right=of v, text width=40mm] (df) {\textbf{Satterthwaite d.f.\ $\hat\nu$}\\[1pt] from $\hat n_{\mathrm{eff}}$, $\textstyle\prod_q 3L_q/(2\hat r_q)$\\ and $K-1$; range ratio $\hat r/L$};
-\node[box=cout, right=of df, text width=40mm] (out) {\textbf{Output}\\[1pt] $T=\hat\Delta/\sqrt{\hat V}\sim t_{\hat\nu}$: $p$-value, CI\\ decision: reject / not / indet.};
+\node[box=cout, right=of df, text width=40mm] (out) {\textbf{Output}\\[1pt] $T=\hat\Delta/\sqrt{\hat V}\sim t_{\hat\nu}$: $p$-value, CI\\ decision with $\rho_0=\tfrac1K$ and $0.5$};
 \draw[arr] (vt.south) -- (vt.south |- v.north);
 \draw[arr] (vu.west) -- ++(-5mm,0) |- (v.west);
 \draw[arr] (v) -- (df);
