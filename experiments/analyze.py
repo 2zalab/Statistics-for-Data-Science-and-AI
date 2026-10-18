@@ -354,8 +354,10 @@ def exp3_tables_figures():
                 r = r.iloc[0]
                 rs = "--" if np.isnan(r.info_range_space) else f"{r.info_range_space:.0f} m"
                 rt = "--" if np.isnan(r.info_range_time) else f"{r.info_range_time:.0f} h"
-                rstar = RSTAR[0]
-                dec = ("indet." if r.info_range_ratio > rstar else ("reject" if r.pvalue < ALPHA else "not rej."))
+                r5 = df[(df.dataset == ds) & (df.comparison == comp) & (df.method == "da_p_rho0.5") & (df.scheme == sch)]
+                p5 = r5.iloc[0].pvalue if len(r5) else np.nan
+                dec = ("reject" if (r.pvalue < ALPHA and p5 < ALPHA) else
+                       ("indet." if r.pvalue < ALPHA else "not rej."))
                 lines.append(f"{DATASETS[ds].split(' (')[0]} & {COMPARISONS[comp]} & {SCHEME[sch]} & {rs} & {rt} & "
                              f"{r.info_n_eff:.0f} & {r.df:.0f} & {r.info_range_ratio:.2f} & {dec} \\\\")
     (TAB / "exp3_diag.tex").write_text("\n".join(lines) + "\n")

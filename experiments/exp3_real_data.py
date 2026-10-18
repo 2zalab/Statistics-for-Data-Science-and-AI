@@ -149,7 +149,7 @@ def compare_forward(ds, kind_a, kind_b, fparts, rng, seed_a=1, seed_b=2):
     test = folds >= 0
     d = (oof_loss(ds, kind_a, folds, seed_a + 11, masks) - oof_loss(ds, kind_b, folds, seed_b + 11, masks))[test]
     res = blocked_cv_tests(d, folds[test], blocks[test], None, ds["times"][test], ds["sites"][test], rng,
-                           ablations=False, max_lag_time=ds["max_lag_time"])
+                           ablations=False, max_lag_time=ds["max_lag_time"], rhos=(0.0, 0.5))
     return [dict(scheme="forward", **r_.as_dict()) for r_ in res]
 
 
@@ -169,7 +169,7 @@ def compare(ds, kind_a, kind_b, parts, rng, seed_a=1, seed_b=2, repeats=R_REPEAT
 
     d = oof_loss(ds, kind_a, folds, seed_a + 7, masks) - oof_loss(ds, kind_b, folds, seed_b + 7, masks)
     res = blocked_cv_tests(d, folds, blocks, ds["coords"], ds["times"], ds["sites"], rng, ablations=False,
-                           max_lag_space=ds["max_lag_space"], max_lag_time=ds["max_lag_time"])
+                           max_lag_space=ds["max_lag_space"], max_lag_time=ds["max_lag_time"], rhos=(0.0, 0.5))
     rows += [dict(scheme="blocked", **r_.as_dict()) for r_ in res]
     return (rows, d) if keep_d else rows
 
