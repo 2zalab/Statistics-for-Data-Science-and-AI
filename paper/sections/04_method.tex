@@ -126,6 +126,10 @@ If the fitted variograms show no structure ($\hat c_1=0$ in both directions) and
 Under increasing-domain asymptotics, the DA-P variance is consistent when the exponential model is correctly specified and its parameters are consistently estimated~\cite{cressie1993}, and the DA-K variance is a Conley-type HAC estimator~\cite{conley1999}, consistent under mixing conditions when the bandwidths grow with, but more slowly than, the size of the domain~\cite{andrews1991}. Our variogram parameters are data-dependent and our variance includes a component, $\hat\tau^2$, estimated from only $K$ folds; we therefore do not claim exact asymptotic validity, and instead evaluate the finite-sample behaviour of the whole procedure by simulation with known truth.
 \end{remark}
 
+\begin{remark}[Implementation]
+DA-P, its kernel variant and all competing procedures are implemented in the open-source Python package \texttt{dacomp} (see Code availability). The implementation was developed with the assistance of a generative AI coding assistant and verified by unit tests and by the exact reproduction of the stored simulation results (see Declarations).
+\end{remark}
+
 \begin{remark}[Scope]
 DA-P requires only the per-observation losses of the two models and their coordinates; it is agnostic to the learners, to the loss and to the blocking scheme. The same construction applies to any additive performance measure (squared error, absolute error, log loss, Brier score, 0--1 loss). Non-additive measures such as the AUC or the F1-score would require a linearisation (influence function) first.
 \end{remark}
